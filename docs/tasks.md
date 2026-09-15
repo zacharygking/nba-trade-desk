@@ -15,8 +15,9 @@ career line of per-game averages, plus the season and career ratings. A player w
 says. Rosters and searches show both ratings, so the agent can see that a 45 on a $14M contract
 was an 80 last year and decide what that means.
 
-The tool set is hashed into every trajectory record, next to the rulebook hash, so a run always
-says which tools it had.
+Every trajectory records the descriptions of the tools it had and the failures its scenario
+injects, next to the rulebook and tool hashes, so a grading packet always shows the run's own
+tool set and names what D5 is about.
 
 Two tasks inject failures: a rulebook read that returns "service unavailable" once, and a partner
 that declines a legal offer once.

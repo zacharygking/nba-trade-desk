@@ -175,8 +175,9 @@ recorded. Rerunning through the API client is one command once a key is set; see
 
 ## Next
 
-1. Rubric v1: D5 only for injected failures, D2 clarified, packets carry the run's own tool
-   descriptions and name the injected failure. Fix R3 and the reply capture.
+1. Done since the judge pass: rubric v1 (D5 only for listed injected failures, D2 clarified),
+   packets carry the run's own tool descriptions and name the injected failures, R3's text and
+   the engine agree, session replies come from a file.
 2. Grading tool: one local HTML file that reads the trajectories and exports labels as JSONL.
 3. Pilot on 10, freeze the rubric, grade 60. Kappa with bootstrap intervals, prevalence beside each
    kappa, judge and human accuracy against ground truth, a length check.

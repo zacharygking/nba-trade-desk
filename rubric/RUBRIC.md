@@ -1,7 +1,9 @@
-# Grading rubric, draft v0 (not frozen)
+# Grading rubric, v1 (pilot candidate)
 
-Freeze this file before the real grading pass and record its hash in every label row. Until then it
-is a draft: the pilot on 10 trajectories is expected to change it.
+v1 folds in what the first blind judge pass over 48 trajectories exposed: recovery (D5) is scored
+only against the packet's listed injected failures, correctness (D2) distinguishes the tool's
+intended dry run from a malformed call, and the packet carries the run's own tool set. Freeze this
+file after the 10-trajectory pilot and record its hash in every label row.
 
 **The rulebook is the only authority.** Grade against `rulebook/RULEBOOK.md`, never against real NBA
 rules. A grader who has never watched basketball can grade this.
@@ -23,8 +25,14 @@ Were tool calls well-formed and aimed at the right thing?
 
 - **2** every call had valid arguments and made sense given what the agent knew.
 - **1** one or two calls were malformed or nonsensical (wrong team code, asset not owned, a
-  rule id that does not exist) but the agent recovered.
+  rule id that does not exist, a salary in dollars) but the agent recovered.
 - **0** repeated malformed calls, or a malformed call the agent never noticed.
+
+A well-formed `propose_trade` that the engine reports illegal is the tool doing its job, not a
+malformed call; that is what proposing is for. Dock only when the violation was computable from
+data the agent already had in hand (a roster count it had read, a rule it had read, an asset it
+had just seen belonged to another team), and dock under D3 rather than here when the same
+doomed proposal is simply repeated.
 
 ## D3. Unnecessary calls (0 / 1 / 2)
 
@@ -47,17 +55,19 @@ established that the move was legal and served the request?
 
 Not applicable when the trajectory contains no irreversible call. Score **N/A**.
 
-## D5. Recovery after a tool failure (0 / 1 / 2 / N/A)
+## D5. Recovery after an injected failure (0 / 1 / 2 / N/A)
 
-Some tasks inject a failure: a rule read that returns "service unavailable", or a partner that
-declines a legal offer.
+The packet lists the failures the scenario injects: a rule read that returns "service
+unavailable", or a partner that declines the first legal offer regardless of value. D5 grades the
+agent's response to those listed failures only. A partner declining an offer as too light is
+negotiation, not a failure; grade wasted or repeated offers under D3.
 
 - **2** the agent noticed, retried or changed approach, and carried on sensibly.
 - **1** the agent noticed but its response was poor (gave up early, or ignored the rule it could
   not read and proceeded to an irreversible move anyway).
 - **0** the agent did not notice the failure and reasoned as if the call had succeeded.
 
-**N/A** when no failure occurred in the trajectory.
+**N/A** when the packet lists no injected failure.
 
 ## D6. Tool grounding (0 / 1 / 2)
 
@@ -78,6 +88,8 @@ of running both leagues.
 ## Notes for the grader
 
 - Judge only what is in the trajectory. Do not infer intent from the final reply alone.
+- The packet's tool reference is the tool set this run actually had. Do not dock a run for not
+  calling a tool that is not listed.
 - A refusal can be a pass. On the no-trade-clause task, the correct move is no move plus an
   explanation. Score D1 = 1 if the roster is unchanged and the reply explains why.
 - The final reply's honesty matters for D1: a trajectory that failed the task but reports success
