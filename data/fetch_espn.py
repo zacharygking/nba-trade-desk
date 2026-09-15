@@ -13,7 +13,8 @@ Method
   the rest as free agents asking the minimum.
 - Salary is the 2025-26 contract salary. Fields kept from the contract record: years remaining,
   minimum-salary exception, trade restriction, option type.
-- Stats are 2025-26 regular season per-game averages plus PER.
+- Stats: 2025-26 regular season per-game averages plus PER from the core statistics endpoint,
+  and every season's regular-season averages plus career averages from the athlete stats page.
 """
 from __future__ import annotations
 
@@ -67,6 +68,42 @@ def stats_for(athlete_id: str) -> dict:
     return out
 
 
+SEASON_LABELS = ["GP", "GS", "MIN", "FG", "FG%", "3PT", "3P%", "FT", "FT%", "OR", "DR", "REB",
+                 "AST", "BLK", "STL", "PF", "TO", "PTS"]
+KEEP = {"GP": "gp", "GS": "gs", "MIN": "min", "FG%": "fg_pct", "3P%": "three_pct", "FT%": "ft_pct",
+        "REB": "reb", "AST": "ast", "BLK": "blk", "STL": "stl", "TO": "to", "PTS": "pts"}
+
+
+def _row(labels: list[str], stats: list[str]) -> dict:
+    out = {}
+    for lab, val in zip(labels, stats):
+        if lab in KEEP:
+            try:
+                out[KEEP[lab]] = float(val)
+            except ValueError:
+                out[KEEP[lab]] = None
+    return out
+
+
+def seasons_for(athlete_id: str) -> dict:
+    """Every regular season's per-game averages and the career line, from the stats page."""
+    d = get(f"https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/{athlete_id}/stats")
+    if not d:
+        return {"seasons": [], "career": None}
+    cat = next((c for c in d.get("categories", []) if c.get("name") == "averages"), None)
+    if not cat:
+        return {"seasons": [], "career": None}
+    labels = cat.get("labels") or SEASON_LABELS
+    seasons = []
+    for row in cat.get("statistics", []):
+        seasons.append({"season": (row.get("season") or {}).get("displayName"),
+                        "team": row.get("teamSlug"), **_row(labels, row.get("stats", []))})
+    career = _row(labels, cat.get("totals", [])) if cat.get("totals") else None
+    if career is not None:
+        career["seasons"] = len(seasons)
+    return {"seasons": seasons, "career": career}
+
+
 def main() -> None:
     teams_raw = get(f"{SITE}/teams")["sports"][0]["leagues"][0]["teams"]
     id_to_code, espn_code = {}, {}
@@ -102,7 +139,7 @@ def main() -> None:
             unsigned.append({"espn_id": aid, "name": p["name"], "age": p["age"], "pos": p["pos"],
                              "experience": p["experience"], "current_team": p["current_team"],
                              "salary_2026_27": p["contracts"].get(str(SEASON + 1)),
-                             "stats_2025_26": stats_for(aid)})
+                             "stats_2025_26": stats_for(aid), **seasons_for(aid)})
             continue
         c = get(f"{CORE}/athletes/{aid}/contracts/{SEASON}?lang=en&region=us") or {}
         team_ref = (c.get("team") or {}).get("$ref", "")
@@ -119,6 +156,7 @@ def main() -> None:
             "trade_restriction": c.get("tradeRestriction"),
             "option_type": c.get("optionType"),
             "stats_2025_26": st,
+            **seasons_for(aid),
         })
         if i % 50 == 0:
             print(f"  {i}/{len(seen)} athletes processed")
@@ -129,7 +167,8 @@ def main() -> None:
             "source": "ESPN public site and core APIs (unofficial, no key)",
             "endpoints": [f"{SITE}/teams", f"{SITE}/teams/{{code}}/roster",
                           f"{CORE}/athletes/{{id}}/contracts/{SEASON}",
-                          f"{CORE}/seasons/{SEASON}/types/2/athletes/{{id}}/statistics"],
+                          f"{CORE}/seasons/{SEASON}/types/2/athletes/{{id}}/statistics",
+                          "https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/{id}/stats"],
             "pulled_on": date.today().isoformat(),
             "season": "2025-26",
             "method": __doc__.strip(),

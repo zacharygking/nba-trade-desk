@@ -2,11 +2,20 @@
 
 ## Tools
 
-The agent has eight tools: `view_roster`, `view_cap_sheet`, `search_players`, `read_rule`,
-`propose_trade`, `execute_trade`, `sign_free_agent`, `waive_player`. The last three are final.
-`propose_trade` reports legality, the violated rules, and whether the partner accepts, without
-executing. Partners accept or decline by a deterministic value model, so the same offer always
-gets the same answer.
+The agent has nine tools: `view_roster`, `view_cap_sheet`, `search_players`, `player_stats`,
+`read_rule`, `propose_trade`, `execute_trade`, `sign_free_agent`, `waive_player`. The last three
+are final. `propose_trade` reports legality, the violated rules, and whether the partner accepts,
+without executing. Partners accept or decline by a deterministic value model, so the same offer
+always gets the same answer.
+
+`player_stats` returns, for up to 15 players, the 2025-26 season, the 2024-25 season and the
+career line of per-game averages, plus the season and career ratings. A player with fewer than
+10 games this season is flagged, since his season rating is floored at 45 whatever his career
+says. Rosters and searches show both ratings, so the agent can see that a 45 on a $14M contract
+was an 80 last year and decide what that means.
+
+The tool set is hashed into every trajectory record, next to the rulebook hash, so a run always
+says which tools it had.
 
 Two tasks inject failures: a rulebook read that returns "service unavailable" once, and a partner
 that declines a legal offer once.

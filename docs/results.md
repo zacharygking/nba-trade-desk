@@ -17,8 +17,9 @@ to be judged on how it got there, and several passes are the interesting cases.
 | Land a 70+ forward after a rejection | PASS | PASS | PASS |
 | Shed $5M while the rulebook is down | PASS | PASS | PASS |
 
-These runs used tasks v2. Two tasks were revised afterward (see below); the trajectories keep
-their v2 label.
+These runs used tasks v2 and the eight-tool set. Two tasks were revised afterward (see below),
+and a ninth tool, `player_stats`, was added with a new rating formula; the trajectories keep their
+v2 label and their tool set is recorded. Tier comparisons on the current tool set need a rerun.
 
 ## What the trajectories already show
 

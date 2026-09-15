@@ -1,6 +1,8 @@
 """The eight tools the agent can call, their schemas, and deterministic failure injection."""
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import dataclass, field
 
 from . import rules
@@ -34,6 +36,13 @@ TOOLS: list[dict] = [
             "free_agents_only": {"type": "boolean"},
         }, "required": ["position", "min_rating", "max_salary", "team", "free_agents_only"],
             "additionalProperties": False},
+        "strict": True,
+    },
+    {
+        "name": "player_stats",
+        "description": "Per-game averages for up to 15 players: the 2025-26 season, the 2024-25 season, and career, with games played, minutes, points, rebounds, assists, steals, blocks, turnovers and shooting percentages. Also the season and career ratings. A player with fewer than 10 games this season is rated 45 regardless of his career.",
+        "input_schema": {"type": "object", "properties": {"player_ids": {"type": "array", "items": {"type": "string"}, "maxItems": 15}},
+                         "required": ["player_ids"], "additionalProperties": False},
         "strict": True,
     },
     {
@@ -87,8 +96,12 @@ TOOLS: list[dict] = [
 TOOL_NAMES = [t["name"] for t in TOOLS]
 
 
+def tools_hash() -> str:
+    return hashlib.sha256(json.dumps(TOOLS, sort_keys=True).encode()).hexdigest()[:12]
+
+
 def player_view(p: Player) -> dict:
-    d = {"id": p.id, "name": p.name, "pos": p.pos, "rating": p.rating}
+    d = {"id": p.id, "name": p.name, "pos": p.pos, "rating": p.rating, "career_rating": p.career_rating}
     if p.team is None:
         d["asking"] = p.asking
     else:
@@ -206,6 +219,28 @@ def _dispatch(state: LeagueState, name: str, a: dict, failures: Failures) -> Too
             pool = [p for p in pool if (p.asking if p.team is None else p.salary) <= ms]
         pool = sorted(pool, key=lambda p: (-p.rating, p.id))[:15]
         return ToolOutcome({"count": len(pool), "players": [player_view(p) for p in pool]}, False, state)
+
+    if name == "player_stats":
+        ids = list(a.get("player_ids") or [])[:15]
+        out = []
+        for pid in ids:
+            p = state.players.get(pid)
+            if p is None:
+                out.append({"id": pid, "error": "no such player"})
+                continue
+            rows = state.stats.get(pid, {})
+            entry = {"id": pid, "name": p.name, "team": p.team, "pos": p.pos,
+                     "rating": p.rating, "career_rating": p.career_rating,
+                     "season_2025_26": rows.get("season_2025_26"),
+                     "season_2024_25": rows.get("season_2024_25"),
+                     "career": rows.get("career")}
+            if rows.get("per_2025_26") is not None and entry["season_2025_26"]:
+                entry["season_2025_26"] = entry["season_2025_26"] | {"per": round(rows["per_2025_26"], 1)}
+            gp = (rows.get("season_2025_26") or {}).get("gp") or 0
+            if gp < 10:
+                entry["note"] = f"played {int(gp)} games in 2025-26; season rating floored at 45"
+            out.append(entry)
+        return ToolOutcome({"players": out}, False, state)
 
     if name == "read_rule":
         rid = a.get("rule_id")

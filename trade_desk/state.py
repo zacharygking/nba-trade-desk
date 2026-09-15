@@ -33,6 +33,7 @@ class Player:
     team: str | None       # None = free agent
     asking: float = 0.0    # free agents only: asking salary
     salary_source: str = "contract"   # "contract" | "inferred:2026-27 contract" | "inferred:minimum"
+    career_rating: int = 45           # same formula as rating, over career per-game averages
 
 
 @dataclass
@@ -53,6 +54,7 @@ class LeagueState:
     dead_money: dict[str, float] = field(default_factory=dict)
     log: list[dict] = field(default_factory=list)
     meta: dict = field(default_factory=dict)   # source, pulled_on, seed
+    stats: dict[str, dict] = field(default_factory=dict)   # player id -> season / prior / career rows
 
     # --- queries -------------------------------------------------------
     def roster(self, team: str) -> list[Player]:

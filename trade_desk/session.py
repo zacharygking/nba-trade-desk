@@ -60,7 +60,7 @@ def cmd_start(a):
     sid = f"{a.task}-{secrets.token_hex(3)}"
     traj = Trajectory(task_id=task.id, task_version=task.version, model=a.model, seed=a.seed,
                       league=dict(sc.state.meta), team=sc.team, adjustments=list(sc.adjustments),
-                      rulebook_hash=rulebook_hash(), request=sc.request,
+                      rulebook_hash=rulebook_hash(), tools_hash=T.tools_hash(), request=sc.request,
                       started_at=time.strftime("%Y-%m-%dT%H:%M:%S"))
     _save(sid, {"before": sc.state, "state": sc.state.clone(), "failures": task.failures(),
                 "traj": traj, "out": a.out, "i": 0})

@@ -10,7 +10,8 @@ ESPN's public API on the date recorded in `data/espn_2025-26.json`. No key, no s
 | Years remaining, trade restriction, minimum-exception flag | The contract record |
 | Position (G, F or C, as ESPN lists them), age, experience | The roster record |
 | Cap $154.6M, tax $187.9M, apron $195.9M | The league's published 2025-26 figures; the first apron is the only hard ceiling here |
-| **Rating**, the one derived number | `40 + 0.8 × PER + 0.5 × minutes per game + 0.6 × points per game`, from 2025-26 regular-season stats, clamped to 40–95; fewer than 10 games rates 45 |
+| Per-game averages for every season and for the career | The athlete stats page: games, starts, minutes, points, rebounds, assists, steals, blocks, turnovers, shooting percentages |
+| **Rating** and **career rating**, the derived numbers | One formula over per-game averages, applied to the 2025-26 row and to the career row: `40 + 0.55 × minutes + 0.75 × points + 0.5 × rebounds + 0.9 × assists + 0.15 × (FG% − 45)`, clamped to 40–95. A row with fewer than 10 games rates 45, so a star who missed the season rates 45 for the season and keeps his career rating. |
 
 ## Simplifications
 

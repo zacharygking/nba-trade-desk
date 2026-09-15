@@ -74,8 +74,10 @@ def test_partner_declines_first_then_accepts(source):
     s, f = sc.state, t.failures()
     # dump a mid-salary player on an under-cap team, taking back its cheapest contract
     p = sorted(s.roster(sc.team), key=lambda p: p.salary)[len(s.roster(sc.team)) // 2]
-    partner = next(x for x in s.teams if x != sc.team and s.payroll(x) + p.salary <= CAP + 5)
-    back = min(s.roster(partner), key=lambda q: q.salary)
+    partner, back = next(
+        (x, b) for x in s.teams if x != sc.team
+        for b in [min(s.roster(x), key=lambda q: q.salary)]
+        if s.payroll(x) + p.salary - b.salary <= CAP)   # partner stays under the cap: no matching
     args = {"team": sc.team, "send": [p.id], "partner": partner, "receive": [back.id]}
     first = execute(s, "propose_trade", args, f)
     assert first.result["legal"] and not first.result["partner_accepts"]

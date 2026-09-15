@@ -47,21 +47,55 @@ def build_league(seed: int = 7, source: str = "espn") -> LeagueState:
 # Real league from the ESPN snapshot
 # ---------------------------------------------------------------------------
 
-def rating_from(stats: dict) -> int:
-    """40-95 scale from 2025-26 per-game stats. Documented so a reader can recompute it.
+STAT_KEYS = ("gp", "gs", "min", "pts", "reb", "ast", "stl", "blk", "to", "fg_pct", "three_pct", "ft_pct")
 
-    rating = 40 + 0.8 * PER + 0.5 * minutes per game + 0.6 * points per game, clamped to [40, 95].
-    A player with fewer than 10 games, or no stats, is rated 45.
-    Reference points: PER 32, 36 min, 29 pts -> 95 (clamped); PER 22, 35 min, 26 pts -> 91;
-    PER 22, 30 min, 13 pts -> 80; PER 13, 24 min, 9 pts -> 68; PER 10, 10 min, 4 pts -> 55.
-    Minutes and points keep small-sample bench efficiency from outranking starters.
+
+def rating_from(row: dict | None) -> int:
+    """40-95 scale from per-game averages. One formula for a season and for a career, so the two
+    ratings are comparable. Documented so a reader can recompute it.
+
+    rating = 40 + 0.55 * minutes + 0.75 * points + 0.5 * rebounds + 0.9 * assists
+             + 0.15 * (field-goal % - 45), clamped to [40, 95].
+    A row with fewer than 10 games, or no row, is rated 45.
+    Reference points: 36.7 min, 29.6 pts, 12.7 reb, 10.2 ast, 58% -> 95 (clamped);
+    30.8 min, 16.1 pts, 10.7 reb, 4.9 ast, 56% -> 80; 24 min, 9 pts, 4 reb, 2 ast, 45% -> 64;
+    10 min, 4 pts, 2 reb, 1 ast, 42% -> 50.
     """
-    if not stats or stats.get("gamesPlayed", 0) < 10:
+    if not row or (row.get("gp") or 0) < 10:
         return 45
-    per = float(stats.get("PER", 0.0))
-    mins = float(stats.get("avgMinutes", 0.0))
-    pts = float(stats.get("avgPoints", 0.0))
-    return int(round(max(40.0, min(95.0, 40.0 + 0.8 * per + 0.5 * mins + 0.6 * pts))))
+    v = (40.0 + 0.55 * (row.get("min") or 0) + 0.75 * (row.get("pts") or 0)
+         + 0.5 * (row.get("reb") or 0) + 0.9 * (row.get("ast") or 0)
+         + 0.15 * ((row.get("fg_pct") or 45) - 45))
+    return int(round(max(40.0, min(95.0, v))))
+
+
+def _row_from_core(st: dict) -> dict | None:
+    """Fallback season row from the core statistics endpoint when the stats page has none."""
+    if not st:
+        return None
+    return {"gp": st.get("gamesPlayed"), "min": st.get("avgMinutes"), "pts": st.get("avgPoints"),
+            "reb": st.get("avgRebounds"), "ast": st.get("avgAssists"), "fg_pct": st.get("fieldGoalPct")}
+
+
+def _clean(row: dict | None) -> dict | None:
+    if not row:
+        return None
+    out = {k: row.get(k) for k in STAT_KEYS if row.get(k) is not None}
+    if "seasons" in row:
+        out["seasons"] = row["seasons"]
+    if "team" in row and row["team"]:
+        out["team"] = row["team"]
+    return out or None
+
+
+def stat_rows(r: dict) -> dict:
+    """season / prior / career rows for one snapshot record, plus PER for the season."""
+    by_season = {x.get("season"): x for x in (r.get("seasons") or [])}
+    season = by_season.get("2025-26") or _row_from_core(r.get("stats_2025_26") or {})
+    prior = by_season.get("2024-25")
+    career = r.get("career")
+    return {"season_2025_26": _clean(season), "season_2024_25": _clean(prior),
+            "career": _clean(career), "per_2025_26": (r.get("stats_2025_26") or {}).get("PER")}
 
 
 def load_espn(path: Path = SNAPSHOT) -> LeagueState:
@@ -78,11 +112,15 @@ def load_espn(path: Path = SNAPSHOT) -> LeagueState:
         rs.sort(key=lambda r: (-r["salary_2025_26"], r["name"]))
         for i, r in enumerate(rs):
             kept.append((r, t if i < ROSTER_MAX else None))
+    stats: dict[str, dict] = {}
     for r, team in sorted(kept, key=lambda x: x[0]["espn_id"]):
         sal = round(r["salary_2025_26"] / 1e6, 2)
+        rows = stat_rows(r)
+        stats[f"E{r['espn_id']}"] = rows
         players[f"E{r['espn_id']}"] = Player(
             id=f"E{r['espn_id']}", name=r["name"], pos=POS_MAP.get(r["pos"], "F"),
-            rating=rating_from(r.get("stats_2025_26") or {}),
+            rating=rating_from(rows["season_2025_26"]),
+            career_rating=rating_from(rows["career"]),
             salary=sal if team else 0.0,
             years=max(1, int(r.get("years_remaining") or 1)) if team else 0,
             guaranteed=True,
@@ -102,11 +140,14 @@ def load_espn(path: Path = SNAPSHOT) -> LeagueState:
     for r in unsigned:
         team = r.get("current_team")
         pid = f"E{r['espn_id']}"
-        rating = rating_from(r.get("stats_2025_26") or {})
+        rows = stat_rows(r)
+        stats[pid] = rows
+        rating, career = rating_from(rows["season_2025_26"]), rating_from(rows["career"])
         if team in TEAMS and sum(1 for p in players.values() if p.team == team) < ROSTER_MAX:
             nxt = r.get("salary_2026_27")
             players[pid] = Player(
                 id=pid, name=r["name"], pos=POS_MAP.get(r["pos"], "F"), rating=rating,
+                career_rating=career,
                 salary=round(nxt / 1e6, 2) if nxt else MIN_CONTRACT, years=1, guaranteed=True,
                 no_trade=False, team=team,
                 salary_source="inferred:2026-27 contract" if nxt else "inferred:minimum",
@@ -114,12 +155,13 @@ def load_espn(path: Path = SNAPSHOT) -> LeagueState:
         else:
             players[pid] = Player(
                 id=pid, name=r["name"], pos=POS_MAP.get(r["pos"], "F"), rating=rating,
+                career_rating=career,
                 salary=0.0, years=0, guaranteed=True, no_trade=False, team=None,
                 asking=MIN_CONTRACT, salary_source="inferred:minimum",
             )
     picks = _own_picks(teams)
     return LeagueState(season=SEASON, teams=teams, players=players, picks=picks,
-                       dead_money={t: 0.0 for t in teams},
+                       dead_money={t: 0.0 for t in teams}, stats=stats,
                        meta={"source": "espn", "pulled_on": snap["provenance"]["pulled_on"],
                              "season": snap["provenance"]["season"]})
 
@@ -158,11 +200,36 @@ def salary_for(rating: int, rng: random.Random) -> float:
     return round(max(MIN_CONTRACT, min(noisy, 60.0)), 1)
 
 
+def synthetic_row(rating: int, pos: str, rng: random.Random, gp: int = 65) -> dict:
+    """Per-game averages consistent with a target rating, with position flavour."""
+    r = rating
+    row = {"gp": gp, "gs": max(0, gp - rng.randint(0, 30)),
+           "min": round(8 + (r - 40) * 0.5 * rng.uniform(0.9, 1.1), 1),
+           "pts": round(max(1.0, (r - 40) * 0.5 * rng.uniform(0.85, 1.15)), 1),
+           "reb": round(max(0.5, 2 + (r - 45) * 0.15 + (2.5 if pos == "C" else -0.5 if pos == "G" else 0)), 1),
+           "ast": round(max(0.3, 1 + (r - 45) * 0.12 + (1.5 if pos == "G" else -0.5 if pos == "C" else 0)), 1),
+           "stl": round(rng.uniform(0.3, 1.5), 1), "blk": round(rng.uniform(0.1, 1.8 if pos == "C" else 0.6), 1),
+           "to": round(max(0.3, (r - 45) * 0.05), 1),
+           "fg_pct": round(44 + (r - 60) * 0.1 + (6 if pos == "C" else 0) + rng.uniform(-2, 2), 1),
+           "three_pct": round(rng.uniform(28, 41), 1), "ft_pct": round(rng.uniform(65, 90), 1)}
+    return row
+
+
 def build_synthetic(seed: int = 7) -> LeagueState:
     rng = random.Random(seed)
     teams = sorted(TEAMS)
     players: dict[str, Player] = {}
+    stats: dict[str, dict] = {}
     used_names: set[str] = set()
+
+    def attach(pid: str, target: int, pos: str) -> tuple[int, int]:
+        season = synthetic_row(target, pos, rng)
+        exp = rng.randint(1, 10)
+        career = synthetic_row(int(target + rng.uniform(-6, 3)), pos, rng, gp=60 * exp)
+        career["seasons"] = exp
+        stats[pid] = {"season_2025_26": season, "season_2024_25": synthetic_row(int(target + rng.uniform(-4, 4)), pos, rng),
+                      "career": career, "per_2025_26": None}
+        return rating_from(season), rating_from(career)
 
     def new_name() -> str:
         while True:
@@ -181,8 +248,9 @@ def build_synthetic(seed: int = 7) -> LeagueState:
         rng.shuffle(positions)
         for i, r in enumerate(ratings):
             pid += 1
+            rating, career = attach(f"P{pid:04d}", r, positions[i])
             players[f"P{pid:04d}"] = Player(
-                id=f"P{pid:04d}", name=new_name(), pos=positions[i], rating=r,
+                id=f"P{pid:04d}", name=new_name(), pos=positions[i], rating=rating, career_rating=career,
                 salary=salary_for(r, rng), years=rng.choice([1, 1, 2, 2, 3, 4]),
                 guaranteed=(r >= 60 or rng.random() < 0.5),
                 no_trade=(r >= 85 and rng.random() < 0.4), team=t,
@@ -190,9 +258,12 @@ def build_synthetic(seed: int = 7) -> LeagueState:
     for _ in range(40):
         pid += 1
         r = rng.randint(45, 74)
+        pos = rng.choice(POSITIONS)
+        rating, career = attach(f"P{pid:04d}", r, pos)
         players[f"P{pid:04d}"] = Player(
-            id=f"P{pid:04d}", name=new_name(), pos=rng.choice(POSITIONS), rating=r, salary=0.0,
+            id=f"P{pid:04d}", name=new_name(), pos=pos, rating=rating, career_rating=career, salary=0.0,
             years=0, guaranteed=True, no_trade=False, team=None, asking=salary_for(r, rng),
         )
     return LeagueState(season=SEASON, teams=teams, players=players, picks=_own_picks(teams),
-                       dead_money={t: 0.0 for t in teams}, meta={"source": "synthetic", "seed": seed})
+                       dead_money={t: 0.0 for t in teams}, stats=stats,
+                       meta={"source": "synthetic", "seed": seed})

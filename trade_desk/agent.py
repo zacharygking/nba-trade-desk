@@ -8,6 +8,7 @@ from typing import Protocol
 
 from . import tools as T
 from .rules import rulebook_hash
+from .tools import tools_hash
 from .state import LeagueState
 from .tasks import Task
 
@@ -130,6 +131,7 @@ class Trajectory:
     team: str
     adjustments: list[str]
     rulebook_hash: str
+    tools_hash: str
     request: str
     started_at: str
     steps: list[dict] = field(default_factory=list)
@@ -154,7 +156,7 @@ def run_task(task: Task, client: Client, seed: int = 7, source: str = "espn",
     failures = task.failures()
     traj = Trajectory(task_id=task.id, task_version=task.version, model=client.model, seed=seed,
                       league=dict(before.meta), team=sc.team, adjustments=list(sc.adjustments),
-                      rulebook_hash=rulebook_hash(), request=sc.request,
+                      rulebook_hash=rulebook_hash(), tools_hash=tools_hash(), request=sc.request,
                       started_at=time.strftime("%Y-%m-%dT%H:%M:%S"))
     client.start(SYSTEM_PROMPT.format(team=sc.team, team_name=TEAMS[sc.team]), sc.request)
 

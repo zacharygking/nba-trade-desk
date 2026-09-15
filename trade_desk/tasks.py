@@ -36,7 +36,7 @@ class Task:
     check: Check
     failures: Callable[[], Failures] = Failures
     tags: list[str] = field(default_factory=list)
-    version: int = 3
+    version: int = 4   # v4: rating formula changed with the stats tool
 
     def build(self, seed: int = 7, source: str = "espn") -> Scenario:
         s = build_league(seed, source)
