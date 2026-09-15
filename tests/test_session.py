@@ -20,9 +20,11 @@ def test_call_limit_is_enforced_and_recorded(capsys, tmp_path):
         for _ in range(3):
             last = _run(["call", "--session", sid, "--tool", "read_rule", "--args", '{"rule_id": "R4"}'], capsys)
         assert "call limit of 2 reached" in last
-        _run(["finish", "--session", sid, "--reply", "stopped"], capsys)
+        (tmp_path / "reply.txt").write_text("stopped at $2.3M over\n")
+        _run(["finish", "--session", sid, "--reply-file", str(tmp_path / "reply.txt")], capsys)
         rec = json.loads((out_dir / "trajectories.jsonl").read_text().splitlines()[-1])
         assert rec["end_reason"] == "max_steps" and rec["max_steps"] == 2
+        assert rec["final_reply"] == "stopped at $2.3M over"
         assert rec["n_tool_calls"] == 3 and rec["n_tool_errors"] == 1
     finally:
         shutil.rmtree(session.SESSIONS, ignore_errors=True)

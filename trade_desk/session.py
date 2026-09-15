@@ -7,8 +7,9 @@ agent.run_task; only the assistant's between-call text is absent.
       the limit are refused with an error and the trajectory ends with reason "max_steps"
   python -m trade_desk.session call   --session <id> --tool view_roster --args '{"team": "LAL"}'
       executes one tool against the session state and prints the JSON result
-  python -m trade_desk.session finish --session <id> --reply "what I did"
-      records the reply, grades against ground truth, appends the trajectory to trajectories.jsonl
+  python -m trade_desk.session finish --session <id> --reply-file reply.txt
+      records the reply (or --reply "text"; prefer the file, a shell string eats $ figures),
+      grades against ground truth, appends the trajectory to trajectories.jsonl
 """
 from __future__ import annotations
 
@@ -103,9 +104,15 @@ def cmd_call(a):
 def cmd_finish(a):
     s = _load(a.session)
     traj: Trajectory = s["traj"]
-    traj.steps.append({"i": s["i"], "type": "assistant", "text": a.reply, "tool_calls": [],
+    if a.reply_file:
+        reply = Path(a.reply_file).read_text().strip()
+    elif a.reply is not None:
+        reply = a.reply
+    else:
+        sys.exit("finish needs --reply-file or --reply")
+    traj.steps.append({"i": s["i"], "type": "assistant", "text": reply, "tool_calls": [],
                        "stop_reason": "end_turn"})
-    traj.final_reply = a.reply
+    traj.final_reply = reply
     traj.end_reason = "max_steps" if s.get("over_limit") else "end_turn"
     task = TASKS_BY_ID[traj.task_id]
     traj.state_diff = s["before"].diff(s["state"])
@@ -136,7 +143,7 @@ def main(argv=None):
     c.add_argument("--args", default="{}")
     c.set_defaults(fn=cmd_call)
     f = sub.add_parser("finish")
-    f.add_argument("--session", required=True); f.add_argument("--reply", required=True)
+    f.add_argument("--session", required=True); f.add_argument("--reply"); f.add_argument("--reply-file")
     f.add_argument("--show-grade", action="store_true")
     f.set_defaults(fn=cmd_finish)
     a = p.parse_args(argv)

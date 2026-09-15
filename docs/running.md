@@ -38,7 +38,7 @@ terminal. Every tool call and result is recorded exactly as in the in-process lo
 ```
 .venv/bin/python -m trade_desk.session start --task under_tax_keep_starters --model claude-code:sonnet --out runs/agents-sonnet
 .venv/bin/python -m trade_desk.session call --session <id> --tool view_cap_sheet --args '{"team": "LAL"}'
-.venv/bin/python -m trade_desk.session finish --session <id> --reply "what I did"
+.venv/bin/python -m trade_desk.session finish --session <id> --reply-file reply.txt
 ```
 
 Two differences from the API path, both stated in the trajectory's model label
