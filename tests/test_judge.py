@@ -53,3 +53,18 @@ def test_record_and_summary_round_trip(tmp_path, capsys):
     judge.main(["summary", str(run)])
     out = capsys.readouterr().out
     assert "D1 agrees with ground truth on 1/1" in out
+
+
+def test_packet_uses_the_runs_own_tools_and_names_injected_failures():
+    from trade_desk.tasks import TASKS_BY_ID
+    t = _traj()
+    assert len(t["tools"]) == 10 and t["injected_failures"] == []
+    text = judge.render_packet(t)
+    assert "Injected failures in this scenario" in text and "- none" in text
+    assert "reconstructed" not in text
+    old = dict(t, tools=[{"name": "read_rule", "description": "old", "final": False}])
+    assert "old" in judge.render_packet(old)
+    legacy = dict(t); legacy.pop("tools")
+    assert "reconstructed" in judge.render_packet(legacy)
+    r = TASKS_BY_ID["rules_service_down"].failures().describe()
+    assert r == ["the first 1 call to read_rule return 'service unavailable'"]

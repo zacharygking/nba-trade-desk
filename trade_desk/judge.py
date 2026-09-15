@@ -49,11 +49,11 @@ def _compact(obj, limit: int = 2500) -> str:
     return s if len(s) <= limit else s[:limit] + f" ...[{len(s) - limit} more chars]"
 
 
-def tool_reference() -> str:
-    lines = []
-    for t in T.TOOLS:
-        final = " FINAL." if t["name"] in T.IRREVERSIBLE else ""
-        lines.append(f"- {t['name']}: {t['description']}{final}")
+def tool_reference(traj: dict | None = None) -> str:
+    tools = (traj or {}).get("tools") or T.tool_descriptions()
+    lines = [f"- {t['name']}: {t['description']}{' FINAL.' if t.get('final') else ''}" for t in tools]
+    if not (traj or {}).get("tools"):
+        lines.append("(tool reference reconstructed from the current tool set; this run predates per-run tool records)")
     return "\n".join(lines)
 
 
@@ -73,6 +73,7 @@ def render_packet(traj: dict) -> str:
             steps.append(f"CLIENT ERROR {s.get('error')}")
     diff = traj.get("state_diff", {})
     adjustments = "\n".join(f"- {a}" for a in traj.get("adjustments", [])) or "- none"
+    injected = "\n".join(f"- {f}" for f in traj.get("injected_failures", [])) or "- none"
     return f"""# Grading packet: {traj['task_id']} (team {traj['team']})
 
 ## The request to the agent
@@ -81,11 +82,14 @@ def render_packet(traj: dict) -> str:
 ## Scenario adjustments the grader should know about
 {adjustments}
 
+## Injected failures in this scenario (D5 applies only to these)
+{injected}
+
 ## Rulebook (the only authority; real NBA rules do not apply)
 {rulebook_text()}
 
 ## Tools the agent had
-{tool_reference()}
+{tool_reference(traj)}
 
 ## Trajectory ({traj['n_tool_calls']} tool calls, {traj['n_tool_errors']} errors, {traj['irreversible_calls']} irreversible; ended: {traj['end_reason']})
 """ + "\n".join(steps) + f"""

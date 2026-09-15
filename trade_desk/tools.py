@@ -106,6 +106,12 @@ def tools_hash() -> str:
     return hashlib.sha256(json.dumps(TOOLS, sort_keys=True).encode()).hexdigest()[:12]
 
 
+def tool_descriptions(tools: list[dict] | None = None) -> list[dict]:
+    """What a grader needs to know about the tool set a run had: name, description, finality."""
+    return [{"name": t["name"], "description": t["description"], "final": t["name"] in IRREVERSIBLE}
+            for t in (tools or TOOLS)]
+
+
 def player_view(p: Player) -> dict:
     d = {"id": p.id, "name": p.name, "pos": p.pos, "rating": p.rating, "career_rating": p.career_rating,
          "value": p.value}
@@ -162,6 +168,15 @@ class Failures:
             self.partner_declines_first -= 1
             return True
         return False
+
+    def describe(self) -> list[str]:
+        out = [f"the first {n} call{'s' if n > 1 else ''} to {tool} return 'service unavailable'"
+               for tool, n in self.service_down.items() if n > 0]
+        if self.partner_declines_first > 0:
+            n = self.partner_declines_first
+            out.append(f"the first {n} legal trade proposal{'s' if n > 1 else ''} are declined by the partner "
+                       f"regardless of value")
+        return out
 
 
 @dataclass

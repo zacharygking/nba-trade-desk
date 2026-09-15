@@ -60,12 +60,14 @@ def cmd_start(a):
     task = TASKS_BY_ID[a.task]
     sc = task.build(a.seed, a.league)
     sid = f"{a.task}-{secrets.token_hex(3)}"
+    failures = task.failures()
     traj = Trajectory(task_id=task.id, task_version=task.version, model=a.model, seed=a.seed,
                       league=dict(sc.state.meta), team=sc.team, adjustments=list(sc.adjustments),
                       rulebook_hash=rulebook_hash(), tools_hash=T.tools_hash(), max_steps=a.max_calls,
                       request=sc.request,
-                      started_at=time.strftime("%Y-%m-%dT%H:%M:%S"))
-    _save(sid, {"before": sc.state, "state": sc.state.clone(), "failures": task.failures(),
+                      started_at=time.strftime("%Y-%m-%dT%H:%M:%S"),
+                      tools=T.tool_descriptions(), injected_failures=failures.describe())
+    _save(sid, {"before": sc.state, "state": sc.state.clone(), "failures": failures,
                 "traj": traj, "out": a.out, "i": 0, "max_calls": a.max_calls, "over_limit": False})
     system = SYSTEM_PROMPT.format(team=sc.team, team_name=TEAMS[sc.team])
     print(f"SESSION {sid}\nTEAM {sc.team}\nCALL LIMIT {a.max_calls}\n\n{system}\n\nREQUEST: {sc.request}\n\n"
