@@ -41,9 +41,28 @@ terminal. Every tool call and result is recorded exactly as in the in-process lo
 .venv/bin/python -m trade_desk.session finish --session <id> --reply-file reply.txt
 ```
 
-Two differences from the API path, both stated in the trajectory's model label
-(`claude-code:<tier>`): the agent's reasoning between calls is not captured, only its calls and
-final reply; and the agent is instructed, not prevented, from reading the repository.
+Three differences from the API path, all signalled by the trajectory's model label
+(`claude-code:<tier>`):
+
+- **Reasoning between calls is not recorded.** The in-process loop stores every assistant turn,
+  text and tool calls together, so the packet shows what the agent said before each call. In
+  session mode only the calls, their results and the final reply cross the shell boundary; the
+  subagent's thinking stays in its own transcript. Graders see actions without intent. That
+  matters most for D2 (was a call sensible given what the agent knew) and D3 (was it necessary),
+  which are inferred from call sequences, and for D6 (did the agent act on tool output or on
+  memory), where a remembered fact is visible only when an action contradicts a tool result or
+  uses something never fetched. A remembered fact that happened to be right is invisible.
+- **The tier is a label, not a model id.** `claude-code:opus` names the tier the subagent ran
+  as, under Claude Code's own harness and system prompt with the trade desk's prompt as its task.
+  The exact model version, effort setting and any harness-level instructions are not in the
+  record, so a tier comparison is a comparison of Claude Code configurations.
+- **The agent is instructed, not prevented, from reading the repository.** The sandbox code,
+  including the partner price list and the task checks, is on the same disk. The API path has
+  no such access.
+
+Rerunning through the API client closes all three: `--model` is a real model id, every
+assistant turn is stored, and the agent sees only its tools. It is one command per tier once a
+key is set, and it is the planned second run set (see [results.md](results.md#next)).
 
 ## Publish, grade, read back
 

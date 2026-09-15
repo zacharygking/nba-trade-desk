@@ -1,4 +1,4 @@
-"""The eight tools the agent can call, their schemas, and deterministic failure injection."""
+"""The ten tools the agent can call, their schemas, the partner model, and deterministic failure injection."""
 from __future__ import annotations
 
 import hashlib

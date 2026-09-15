@@ -18,8 +18,11 @@ The league, rulebook, tools, eight tasks and the agent loop are built and tested
 Code tiers have run every task twice. The current set is published as a dataset, a blind judge
 has graded it on six dimensions through motherlode's gate, and the graded dataset is committed
 beside it. The judge agrees with ground truth on task success in 23 of 24 current trajectories;
-the one disagreement has a proposed adjudication. The human grading pass is next. The grading tool and
-the human-validated agreement numbers are next.
+the one disagreement has a proposed adjudication. The blind hand-grading tool is built. Next is
+the human pass: a ten-item pilot to freeze the rubric, then a stratified set of about sixty
+trajectories graded by a person and by a judge from a different model family, and the
+chance-corrected agreement between them. The plan for that set is in
+[docs/results.md](docs/results.md#next).
 
 | Ground truth passes, 8 tasks | Haiku 4.5 | Sonnet | Opus |
 |---|---|---|---|

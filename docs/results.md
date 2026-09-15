@@ -41,8 +41,8 @@ handpick over `datasets/trajectories-v5`. Its label rows and the judge's share t
 
 ## Judge pass one: 48 trajectories, six dimensions (rubric v0)
 
-Every trajectory from both sets was graded once by a blind judge (the Opus tier, through the
-anonymized packet pool in `trade_desk/judge.py`) on the six rubric dimensions. The rubric was
+Every trajectory from both sets was graded once by a blind judge (the Opus tier, through an
+anonymized packet pool that predates motherlode's `mask`) on the six rubric dimensions. The rubric was
 draft v0 and the packets embedded the then-current rulebook; this pass is what produced v1.
 
 **Judge versus ground truth on task success: 47 of 48 agree.** The one disagreement is the
@@ -210,16 +210,55 @@ Mining the trajectories then showed that most of the noise was the interface, no
 Discipline was good throughout: no agent executed a trade it had not first proposed and had
 accepted, and all three tiers noticed the rulebook outage and worked around it.
 
-## Method caveat
+## Method caveats
 
-The model labels are Claude Code tiers, not API model ids, and reasoning between calls is not
-recorded. Rerunning through the API client is one command once a key is set; see
-[running.md](running.md).
+- **The judge and the agents are one model family.** Both judge passes were the Opus tier
+  grading Haiku, Sonnet and Opus. A judge tends to prefer outputs from its own family, so the
+  Opus row above may be flattered and the judge-versus-truth agreement is not evidence against
+  that. The human pass is the control, and the judge for it will be a different family from
+  every graded tier: Fable, through the same `motherlode survey` command. The judgments here stay
+  as the pilot's hidden second opinion and as a same-family baseline to compare against.
+- **Reasoning between calls is not recorded, and the tiers are labels.** All 48 trajectories
+  came through session mode, so the packets show calls and results without the agent's words
+  between them, and `claude-code:<tier>` is a harness configuration, not a model id. D2, D3 and
+  D6 are graded on actions alone. [running.md](running.md#run-an-agent-from-outside-the-process)
+  spells out what that hides.
+- **The partner is a price list.** Every "negotiation" in these stories is a search for a fixed
+  threshold, and no end-state check asks about price. Overpayment is visible only through the
+  judge. [tasks.md](tasks.md#the-partner-is-a-formula-not-a-negotiator) has the formula.
+- **Task success is almost always a pass.** 22 of the 24 current trajectories pass ground truth.
+  At that prevalence a kappa on D1 is unstable whatever the sample size: with two raters each
+  right 95% of the time, simulated bootstrap intervals on D1 are about 0.7 wide at 92% passes and
+  about 0.35 wide at 60% passes, for the same 48 items. Raw agreement stays near 0.9 in both
+  cases, which is why it is never the headline. The real pass controls the base rate by
+  construction; see Next.
 
 ## Next
 
-1. Tighten the forward task's check to require a net gain, per the adjudication above.
-2. The pilot: ten trajectories in motherlode's grading tool, then fix the rubric and freeze it.
-3. The real pass: kappa per dimension with intervals, judge and human against ground truth,
-   adjudication of every disagreement, all in the graded dataset.
-4. Rerun through the API on both leagues; measure tool grounding against the synthetic baseline.
+1. **The pilot.** Ten trajectories from the current set in motherlode's `handpick` tool, graded
+   blind. Fix what the pilot exposes in the rubric, freeze it, record its hash. The pilot items
+   are discarded from the real pass.
+2. **A pool with failures in it.** The current 24 trajectories are 22 passes, which no sample
+   size can rescue. The pool for the real pass adds three run sets on the frozen rubric:
+
+   | Run set | Trajectories | Why |
+   |---|---|---|
+   | Current set, tasks v6 | 24 | The forward task and R3 changed after v5 |
+   | Two more Haiku passes | 16 | Haiku is where ground-truth failures come from |
+   | Synthetic league, three tiers | 24 | The tool-grounding baseline; nothing to remember |
+   | Existing v5 set, minus the pilot | 14 | Already judged; kept if the rubric does not move |
+
+   About 78 trajectories, all judged by Fable through `motherlode survey`. From those, the
+   human set is 60, stratified: every ground-truth failure, then passes drawn evenly across
+   tier and task until the set is full. That is the design in the plan (half failures where the
+   pool allows it, every tier equal), and it is what makes the D1 kappa mean something. If the
+   pool has fewer than 20 failures, the tasks get harder before the set is drawn, not the sample
+   smaller.
+3. **The real pass.** Sixty packets by hand, about eight to ten hours in sessions, with the
+   judge hidden until each label commits. Then `prospect`: kappa per dimension with bootstrap
+   intervals, weighted kappa on the ordinal dimensions, prevalence beside each, judge and human
+   against ground truth on D1, and a length check. Adjudicate every disagreement as judge wrong,
+   human wrong or rubric ambiguous. The pre-adjudication kappa is the number on the card.
+4. **Rerun through the API** when a key exists, so the record carries the agent's words between
+   calls and real model ids, and grade that set the same way. Compare the ESPN and synthetic
+   leagues on D6.
