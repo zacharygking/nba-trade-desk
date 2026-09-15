@@ -132,3 +132,11 @@ def test_pool_keys_are_deterministic_and_opaque(tmp_path):
     m1 = json.loads((tmp_path / "p1" / "manifest.json").read_text())
     m2 = json.loads((tmp_path / "p2" / "manifest.json").read_text())
     assert list(m1) == list(m2) == [a]
+
+
+def test_trajectories_record_provenance():
+    t = _traj()
+    assert t["code_commit"] and len(t["code_commit"]) >= 7
+    assert t["snapshot_sha256"] == ""     # synthetic league: no snapshot
+    from trade_desk.agent import provenance
+    assert len(provenance()["snapshot_sha256"]) == 12

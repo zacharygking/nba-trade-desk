@@ -138,6 +138,8 @@ class Trajectory:
     tools: list[dict] = field(default_factory=list)          # the tool set this run had
     injected_failures: list[str] = field(default_factory=list)
     rulebook: str = ""                                       # the rulebook text this run had
+    snapshot_sha256: str = ""                                # data snapshot the league was built from
+    code_commit: str = ""                                    # git commit of this repo at run time
     steps: list[dict] = field(default_factory=list)
     final_reply: str = ""
     end_reason: str = ""
@@ -149,6 +151,20 @@ class Trajectory:
 
     def to_dict(self) -> dict:
         return self.__dict__
+
+
+def provenance() -> dict:
+    """Snapshot hash and repo commit, so a trajectory says what it was made from."""
+    import hashlib
+    import subprocess
+    from .league import SNAPSHOT
+    snap = hashlib.sha256(SNAPSHOT.read_bytes()).hexdigest()[:12] if SNAPSHOT.exists() else ""
+    try:
+        commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True,
+                                cwd=SNAPSHOT.parent.parent, timeout=5).stdout.strip()
+    except Exception:  # noqa: BLE001 - no git is not an error for a run
+        commit = ""
+    return {"snapshot_sha256": snap, "code_commit": commit}
 
 
 def run_task(task: Task, client: Client, seed: int = 7, source: str = "espn",
@@ -164,7 +180,7 @@ def run_task(task: Task, client: Client, seed: int = 7, source: str = "espn",
                       request=sc.request,
                       started_at=time.strftime("%Y-%m-%dT%H:%M:%S"),
                       tools=tool_descriptions(), injected_failures=failures.describe(),
-                      rulebook=rulebook_text())
+                      rulebook=rulebook_text(), **(provenance() if source == "espn" else {"code_commit": provenance()["code_commit"]}))
     client.start(SYSTEM_PROMPT.format(team=sc.team, team_name=TEAMS[sc.team]), sc.request)
 
     for i in range(max_steps):

@@ -22,7 +22,7 @@ import time
 from pathlib import Path
 
 from . import tools as T
-from .agent import SYSTEM_PROMPT, Trajectory
+from .agent import SYSTEM_PROMPT, Trajectory, provenance
 from .league import TEAMS
 from .rules import rulebook_hash, rulebook_text
 from .tasks import TASKS_BY_ID
@@ -67,7 +67,7 @@ def cmd_start(a):
                       request=sc.request,
                       started_at=time.strftime("%Y-%m-%dT%H:%M:%S"),
                       tools=T.tool_descriptions(), injected_failures=failures.describe(),
-                      rulebook=rulebook_text())
+                      rulebook=rulebook_text(), **(provenance() if a.league == "espn" else {"code_commit": provenance()["code_commit"]}))
     _save(sid, {"before": sc.state, "state": sc.state.clone(), "failures": failures,
                 "traj": traj, "out": a.out, "i": 0, "max_calls": a.max_calls, "over_limit": False})
     system = SYSTEM_PROMPT.format(team=sc.team, team_name=TEAMS[sc.team])
