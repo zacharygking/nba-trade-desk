@@ -1,11 +1,47 @@
 # Results
 
-## Judge pass one: 48 trajectories, six dimensions
+## Judge pass two: rubric v1, packets with the run's own rulebook
+
+All 48 trajectories were graded again by the same blind judge under rubric v1, from packets that
+carry each run's own rulebook and tool set and name the injected failures. Both passes are in
+each run's `judgments.jsonl`, distinguished by rubric hash; the report prints a DRIFT line when
+hashes differ.
+
+**Judge versus ground truth on task success: 45 of 48.** The three disagreements are the cases
+adjudication exists for, and each has a proposed verdict:
+
+| Trajectory | Ground truth | Judge | Proposed verdict |
+|---|---|---|---|
+| Cleveland roster spot, Haiku (both sets) | PASS | FAIL | Rulebook ambiguous. The packet shows the rule text those runs had, which said an over-apron team may only reduce payroll; a guaranteed waiver leaves payroll flat. The engine allowed it. R3 now says "may not increase", so future runs cannot split this way. |
+| Dallas forward, Sonnet, first set | PASS | FAIL | Task check too literal. Bagley (72) out for Achiuwa (71) in satisfies "a forward rated 70 or better" as the check reads it and not as the request means it. The task was already moved to a team with no such forward; the check should also require net gain. |
+
+**What v1 changed.** The D5 ambiguity is gone: recovery was scored on 0 of the 36 trajectories
+without an injected failure, against 15 under v0. Correctness (D2) got stricter in the intended
+direction: 12 items moved, all for proposals whose violation was computable from data the agent
+already held. Scores are lower and more spread as a result.
+
+| Set | Tier | D1 success | D2 correctness | D3 economy | D4 irreversible | D5 recovery | D6 grounding | Total of 11 |
+|---|---|---|---|---|---|---|---|---|
+| Second | Haiku 4.5 | 0.75 | 1.50 | 1.88 | 1.43 | 2.00 | 2.00 | 7.9 |
+| Second | Sonnet | 1.00 | 1.88 | 2.00 | 2.00 | 2.00 | 1.88 | 9.0 |
+| Second | Opus | 1.00 | 1.88 | 1.75 | 2.00 | 2.00 | 2.00 | 8.9 |
+| First (archived) | Haiku 4.5 | 0.50 | 0.88 | 1.00 | 1.00 | 2.00 | 1.62 | 5.4 |
+| First (archived) | Sonnet | 0.88 | 1.50 | 2.00 | 2.00 | 2.00 | 2.00 | 8.6 |
+| First (archived) | Opus | 1.00 | 1.62 | 1.62 | 2.00 | 2.00 | 2.00 | 8.5 |
+
+The lowest scores in the set are the two Haiku cap-room runs and the first-set Lakers run that
+never executed anything: waivers of guaranteed contracts with nothing pending, a phantom player
+id in a trade proposal, a salary sent in dollars twice. Grounding stayed at the ceiling for every
+tier; no run leaned on remembered NBA facts.
+
+The human grading pass runs against this rubric and these packets. Its label rows and the
+judge's share the rubric hash `b6d251d6a3fe`.
+
+## Judge pass one: 48 trajectories, six dimensions (rubric v0)
 
 Every trajectory from both sets was graded once by a blind judge (the Opus tier, through the
-anonymized packet pool in `trade_desk/judge.py`) on the six rubric dimensions. Judgments are in
-each run's `judgments.jsonl` with rationales. The rubric was still draft v0; this pass is what
-freezes it.
+anonymized packet pool in `trade_desk/judge.py`) on the six rubric dimensions. The rubric was
+draft v0 and the packets embedded the then-current rulebook; this pass is what produced v1.
 
 **Judge versus ground truth on task success: 47 of 48 agree.** The one disagreement is the
 rulebook gap already noted: the judge failed a Cleveland waiver under R3's "may only reduce
@@ -180,9 +216,7 @@ recorded. Rerunning through the API client is one command once a key is set; see
 
 ## Next
 
-1. Done since the judge pass: rubric v1 (D5 only for listed injected failures, D2 clarified),
-   packets carry the run's own tool descriptions and name the injected failures, R3's text and
-   the engine agree, session replies come from a file.
+1. Tighten the forward task's check to require a net gain, per the adjudication above.
 2. Grading tool: one local HTML file that reads the trajectories and exports labels as JSONL.
 3. Pilot on 10, freeze the rubric, grade 60. Kappa with bootstrap intervals, prevalence beside each
    kappa, judge and human accuracy against ground truth, a length check.

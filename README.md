@@ -16,7 +16,8 @@ it remembers.
 
 The league, rulebook, tools, eight tasks and the agent loop are built and tested. Three Claude
 Code tiers have run every task twice, and a blind judge has graded all 48 trajectories on six
-dimensions. The judge agrees with ground truth on task success in 47 of 48. The grading tool and
+dimensions, twice: once under the draft rubric and once under v1. Under v1 the judge agrees with
+ground truth on task success in 45 of 48, and each disagreement has a proposed adjudication. The grading tool and
 the human-validated agreement numbers are next.
 
 | Ground truth passes, 8 tasks | Haiku 4.5 | Sonnet | Opus |

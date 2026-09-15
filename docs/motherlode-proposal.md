@@ -3,25 +3,35 @@
 Written after adopting v0.1.0 (`rubric_hash`, `handpick`). Everything below is a proposal for the
 generic library, not trade-desk code.
 
-## 0. Division of labor
+## 0. Division of labor: files, not imports
 
-Motherlode runs the pipeline and ends at paydirt: mine the items, judge them, handpick and
-prospect to validate the judge, pan, write the set. A downstream project supplies what is
-domain-shaped and reads the paydirt back:
+Motherlode ends at paydirt and never imports a downstream project. A downstream project never
+imports motherlode either; it invokes motherlode's commands and reads the files they write. The
+boundary is three file contracts:
 
-| Motherlode | The trade desk |
-|---|---|
-| Mining loop, judge loop, score parsing, anonymized pool, label rows, kappa, grading tool | The sandbox the agent acts in (league, rules, tools, tasks) |
-| Paydirt and tailings files with hashes and provenance | The ground-truth check, as a checker motherlode calls |
-| | Packet rendering: a trajectory to text for a judge or a grader |
-| | Reports over the paydirt: pass tables, transaction stories |
+1. **The project writes packets and truth.** A directory with one text file per item to grade,
+   plus a labels file whose rater is `ground_truth` for any dimension a checker can settle.
+2. **Motherlode reads text and rubric, writes scores.** `judge` takes the packets directory and a
+   rubric spec, does its own blinding, and writes `judgments.jsonl`. `handpick` takes an items
+   file and writes the grading tool; the person's labels come back as a file. `prospect` takes
+   label files, including the judge's and ground truth's, and writes the validation report.
+3. **The project reads scores and labels back** for its own tables.
 
-Under that split, the generic parts of `trade_desk/judge.py` (pool, score recording, the API
-judge loop, the parser, the judgments report) are on loan and move into motherlode as it grows.
-Sections 1 to 6 are what that move needs. The trade desk's current interim is six
-single-label `handpick` tools, one per rubric dimension, which works but makes a grader read the
-same packet six times. The shapes here would let one tool grade a multi-dimension rubric, and they
-are meant to fit any future data task that scores an item on several axes, not only this one.
+Under this rule the trade desk keeps everything about basketball: the sandbox the agent acts in
+(league, rules, tools, tasks), the runner that produces trajectories, the packet renderer, and
+the ground-truth check exported as labels. The generic parts of `trade_desk/judge.py` today (the
+anonymized pool, the score parser, the API judge loop, the judgments report) are on loan and
+become motherlode's `judge` command rather than library functions the trade desk imports. The
+trade desk's one import, `rubric_hash`, goes away too: motherlode writes the hash into every file
+it produces.
+
+Only one step needs a live environment: an agent acting in a sandbox. That stays in the project
+and is not a `mine`. For `mine` itself to obey the same rule, it should take a prompts file and a
+model name rather than load a teacher and a spec from the project's Python.
+
+Two shared conventions remain, and they are schemas, not code: the rubric spec format and the
+shapes of a packets directory and a label row. They are the right place for agreement to live,
+because both sides can version them and test them with fixtures.
 
 ## 1. A rubric spec, so labels can have dimensions
 
