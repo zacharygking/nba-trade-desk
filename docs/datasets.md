@@ -19,24 +19,24 @@ and not replayable (see [results.md](results.md)).
 nba-trade-desk publish --runs runs/agents-v5-haiku runs/agents-v5-sonnet runs/agents-v5-opus --out datasets/trajectories-v5 --name trajectories-v5
 
 # motherlode judges (blind packets under opaque keys; a subagent or a person records scores, or an API model does)
-motherlode assay pool  --dataset datasets/trajectories-v5 --out work/assay
-motherlode assay score --workspace work/assay --key <key> --rater claude-code:opus --scores '<json>'
-motherlode assay score --workspace work/assay --model claude-opus-5
+motherlode pool  --dataset datasets/trajectories-v5 --out work/pool
+motherlode grade --pool work/pool --key <key> --rater claude-code:opus --scores '<json>'
+motherlode grade --pool work/pool --model claude-opus-5
 
 # a person grades a sample blind, every dimension on one page, the judge revealed after commit
-motherlode handpick --dataset datasets/trajectories-v5 --workspace work/assay --ids <pilot ids> --rater zachary --out work/grade.html
+motherlode handpick --dataset datasets/trajectories-v5 --pool work/pool --ids <pilot ids> --rater zachary --out work/grade.html
 
 # validate per dimension, with ground truth as a third rater
-motherlode prospect --dataset datasets/trajectories-v5 --human work/labels-zachary.jsonl --judge work/assay/judgments.jsonl --adjudication work/adjudicate.jsonl
+motherlode prospect --dataset datasets/trajectories-v5 --human work/labels-zachary.jsonl --judge work/pool/judgments.jsonl --adjudication work/adjudicate.jsonl
 
 # the graded dataset, back to the trade desk
-motherlode paydirt --dataset datasets/trajectories-v5 --workspace work/assay --human work/labels-zachary.jsonl --out datasets/trajectories-v5-graded
+motherlode paydirt --dataset datasets/trajectories-v5 --pool work/pool --human work/labels-zachary.jsonl --out datasets/trajectories-v5-graded
 
 # the trade desk reads it back
 nba-trade-desk results --items datasets/trajectories-v5 --graded datasets/trajectories-v5-graded
 ```
 
-`work/` is a scratch directory and is ignored. Everything that matters ends up in `datasets/`.
+`work/` holds the pool and the grading tools; it is scratch and ignored. Everything that matters ends up in `datasets/`.
 
 ## What each side owns
 

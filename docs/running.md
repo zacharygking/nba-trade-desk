@@ -49,7 +49,7 @@ final reply; and the agent is instructed, not prevented, from reading the reposi
 
 ```
 .venv/bin/nba-trade-desk publish --runs runs/agents-v5-haiku runs/agents-v5-sonnet runs/agents-v5-opus --out datasets/trajectories-v5 --name trajectories-v5
-.venv/bin/motherlode assay pool --dataset datasets/trajectories-v5 --out work/assay      # then score, handpick, prospect, paydirt
+.venv/bin/motherlode pool --dataset datasets/trajectories-v5 --out work/pool             # then grade, handpick, prospect, paydirt
 .venv/bin/nba-trade-desk results --items datasets/trajectories-v5 --graded datasets/trajectories-v5-graded
 ```
 
@@ -87,5 +87,5 @@ One table per model, then a by-task grid. `--stories` spells out each run's tran
 | `rubric/RUBRIC.md`, `rubric/RUBRIC.json` | Grading rubric, six dimensions, and its spec. |
 | `runs/` | Trajectories as JSONL, committed. `runs/archive/` holds the first set, which is not replayable. |
 | `datasets/` | The items datasets the trade desk publishes and the graded datasets motherlode writes back. |
-| `work/` | Scratch for motherlode workspaces and grading tools; ignored. |
+| `work/` | Scratch for motherlode's pools and grading tools; ignored. |
 | `tests/` | Rule validators, scenario preconditions on both leagues, scripted end-to-end runs. |
