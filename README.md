@@ -57,5 +57,3 @@ uv venv --python 3.12 .venv && uv pip install -e ".[dev]"
 | [docs/results.md](docs/results.md) | First runs, what they show, what is next |
 | [rulebook/RULEBOOK.md](rulebook/RULEBOOK.md) | The rulebook the agent and the grader read |
 | [rubric/RUBRIC.md](rubric/RUBRIC.md) | The grading rubric |
-
-MIT license.
