@@ -1,5 +1,7 @@
 # NBA trade desk
 
+[![tests](https://github.com/zacharygking/nba-trade-desk/actions/workflows/tests.yml/badge.svg)](https://github.com/zacharygking/nba-trade-desk/actions/workflows/tests.yml)
+
 An agentic evaluation sandbox. An LLM agent plays general manager over the real 2025-26 NBA:
 it reads the rulebook, works the cap sheet, and trades, signs and waives with tools whose effects
 are final. A rubric judge grades each trajectory on six dimensions, and the judge itself is
@@ -38,7 +40,8 @@ down to a second. That is what the judge is for. Details in [docs/results.md](do
   moves without checking, recovery after failure, and tool grounding.
   [rubric/RUBRIC.md](rubric/RUBRIC.md)
 - **Every number is reproducible.** Trajectories, the data snapshot and the rulebook hash are
-  committed. [docs/running.md](docs/running.md)
+  committed. Human grading and judge validation use the shared
+  [motherlode](https://github.com/zacharygking/motherlode) library. [docs/running.md](docs/running.md)
 
 ## Quick start
 
@@ -56,6 +59,7 @@ uv venv --python 3.12 .venv && uv pip install -e ".[dev]"
 | [docs/league.md](docs/league.md) | Where the data comes from, the rating formula, simplifications, coverage |
 | [docs/tasks.md](docs/tasks.md) | Tools, tasks and their traps, the trajectory record |
 | [docs/running.md](docs/running.md) | Setup, CLI, outside-agent sessions, repo layout |
-| [docs/results.md](docs/results.md) | First runs, what they show, what is next |
+| [docs/results.md](docs/results.md) | Both run sets, the judge pass, what is next |
+| [docs/motherlode-proposal.md](docs/motherlode-proposal.md) | What the shared grading library needs to fit a six-dimension rubric |
 | [rulebook/RULEBOOK.md](rulebook/RULEBOOK.md) | The rulebook the agent and the grader read |
 | [rubric/RUBRIC.md](rubric/RUBRIC.md) | The grading rubric |

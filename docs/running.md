@@ -45,6 +45,20 @@ Two differences from the API path, both stated in the trajectory's model label
 (`claude-code:<tier>`): the agent's reasoning between calls is not captured, only its calls and
 final reply; and the agent is instructed, not prevented, from reading the repository.
 
+## Grade by hand and validate the judge
+
+```
+.venv/bin/python -m trade_desk.judge pool --runs runs/agents-v5-haiku runs/agents-v5-sonnet runs/agents-v5-opus --out runs/.judge
+.venv/bin/python -m trade_desk.judge handpick --pool runs/.judge --out runs/handpick --rater zachary
+open runs/handpick/grade-D1.html            # one blind, assisted tool per dimension; export labels when done
+.venv/bin/python -m trade_desk.judge labels --pool runs/.judge --dimension D1 --out runs/handpick/judge-D1.jsonl
+.venv/bin/motherlode prospect --human runs/handpick/labels-zachary-D1.jsonl --judge runs/handpick/judge-D1.jsonl
+```
+
+The grading tools and the validation come from [motherlode](https://github.com/zacharygking/motherlode),
+pinned by tag in `pyproject.toml`. One tool per dimension is the interim until motherlode grades a
+multi-dimension rubric in one pass; see `docs/motherlode-proposal.md`.
+
 ## Compare runs
 
 ```
