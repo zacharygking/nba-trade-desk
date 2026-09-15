@@ -86,7 +86,7 @@ TOOLS: list[dict] = [
         "input_schema": {"type": "object", "properties": {
             "team": {"type": "string"},
             "player_id": {"type": "string"},
-            "salary": {"type": "number", "description": "$M. Must satisfy the cap rules."},
+            "salary": {"type": "number", "description": "In millions of dollars, e.g. 2.3 for a $2.3M contract. Must satisfy the cap rules."},
         }, "required": ["team", "player_id", "salary"], "additionalProperties": False},
         "strict": True,
     },
@@ -296,6 +296,11 @@ def _dispatch(state: LeagueState, name: str, a: dict, failures: Failures) -> Too
     if name == "sign_free_agent":
         t = _team(state, a["team"])
         pid, salary = a["player_id"], float(a["salary"])
+        if salary > 500:
+            return ToolOutcome({"signed": False, "error": f"salary is in millions of dollars: send {salary / 1e6:.2f}, not {salary:.0f}"},
+                               True, state)
+        if salary <= 0:
+            return ToolOutcome({"signed": False, "error": "salary must be positive, in millions of dollars"}, True, state)
         violations = rules.check_signing(state, t, pid, salary)
         if violations:
             return ToolOutcome({"signed": False, "violations": [v.to_dict() for v in violations]}, True, state)

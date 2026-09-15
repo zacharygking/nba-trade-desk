@@ -46,3 +46,24 @@ def test_low_games_are_flagged(source):
 def test_tools_hash_is_stable_and_lists_nine_tools():
     assert len(TOOL_NAMES) == 10 and "player_stats" in TOOL_NAMES and "view_league" in TOOL_NAMES
     assert tools_hash() == tools_hash() and len(tools_hash()) == 12
+
+
+def test_salary_in_dollars_is_rejected_clearly():
+    s = build_league(source="synthetic")
+    fa = s.free_agents()[0]
+    out = execute(s, "sign_free_agent", {"team": "SAC", "player_id": fa.id, "salary": 2300000})
+    assert out.is_error and "millions" in out.result["error"] and "2.30" in out.result["error"]
+
+
+def test_read_rule_without_id_returns_full_text():
+    s = build_league(source="synthetic")
+    out = execute(s, "read_rule", {"rule_id": None})
+    assert len(out.result["rules"]) == 10 and all(r["text"] for r in out.result["rules"])
+
+
+def test_view_league_lists_every_team():
+    s = build_league(source="synthetic")
+    out = execute(s, "view_league", {})
+    assert len(out.result["teams"]) == 30
+    assert out.result["teams"][0]["payroll"] >= out.result["teams"][-1]["payroll"]
+    assert {"cap_room", "open_spots", "over_tax_by"} <= set(out.result["teams"][0])
