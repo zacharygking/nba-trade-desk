@@ -10,11 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - name: Install, with the motherlode tools extra
-        run: uv pip install --system -e ".[dev,tools]"
+        run: pip install -e ".[dev,tools]"
       - name: Test on both leagues
         run: python -m pytest -q
       - name: Smoke run, no API
