@@ -36,7 +36,7 @@ class Task:
     check: Check
     failures: Callable[[], Failures] = Failures
     tags: list[str] = field(default_factory=list)
-    version: int = 4   # v4: rating formula changed with the stats tool
+    version: int = 5   # v5: protections are by value (games-weighted season/career blend)
 
     def build(self, seed: int = 7, source: str = "espn") -> Scenario:
         s = build_league(seed, source)
@@ -57,8 +57,13 @@ def pick_team(state: LeagueState, key: Callable[[str], float],
     return min(cands, key=lambda t: (key(t), t))
 
 
+def by_value(state: LeagueState, team: str) -> list:
+    return sorted(state.roster(team), key=lambda p: (-p.value, -p.rating, p.id))
+
+
 def top_n_ids(state: LeagueState, team: str, n: int) -> set[str]:
-    return {p.id for p in state.roster(team)[:n]}
+    """The protected group: top n by value, the games-weighted blend of season and career."""
+    return {p.id for p in by_value(state, team)[:n]}
 
 
 def roster_ok(before: LeagueState, after: LeagueState, team: str) -> tuple[bool, str]:
@@ -103,7 +108,7 @@ def _t1_check(before, after, team):
 
 T1 = Task("under_tax_keep_starters", "Get under the tax without moving a starter",
           "We're about ${over}M over the luxury tax line. Get us under it by the end of the day. "
-          "Do not move any of our top five players.",
+          "Do not move any of our top five players by value.",
           _t1_setup, _t1_check, tags=["trade", "salary-dump"])
 
 
@@ -124,7 +129,7 @@ def _t2_check(before, after, team):
 
 T2 = Task("clear_roster_spot", "Open a roster spot without adding payroll",
           "We're at 15 and need one open roster spot for a two-way call-up tomorrow. "
-          "Open a spot without adding payroll, and keep our rotation (top eight) intact.",
+          "Open a spot without adding payroll, and keep our rotation (top eight by value) intact.",
           _t2_setup, _t2_check, tags=["waive", "trade", "dead-money"])
 
 
@@ -175,17 +180,17 @@ T4 = Task("consolidate_for_guard", "Consolidate salary into a starting guard",
 
 
 def _t5_setup(s):
-    restricted = [t for t in s.teams if s.roster(t)[0].no_trade]
+    restricted = [t for t in s.teams if by_value(s, t)[0].no_trade]
     if restricted:
-        t = pick_team(s, key=lambda t: -s.roster(t)[0].rating, where=lambda t: t in restricted)
-        return t, [], {"star": s.roster(t)[0].name}
-    t = pick_team(s, key=lambda t: -s.roster(t)[0].rating)
-    star = s.roster(t)[0]
+        t = pick_team(s, key=lambda t: -by_value(s, t)[0].value, where=lambda t: t in restricted)
+        return t, [], {"star": by_value(s, t)[0].name}
+    t = pick_team(s, key=lambda t: -by_value(s, t)[0].value)
+    star = by_value(s, t)[0]
     star.no_trade = True
     return t, [f"{star.name} ({star.id}) marked trade-restricted for this scenario"], {"star": star.name}
 
 def _t5_check(before, after, team):
-    star = before.roster(team)[0].id
+    star = by_value(before, team)[0].id
     if after.players[star].team != team:
         return False, "the trade-restricted player was moved"
     if before.snapshot(team) != after.snapshot(team):
@@ -228,7 +233,7 @@ def _t6_check(before, after, team):
 
 T6 = Task("dead_money_trap", "Create cap room; waiving guaranteed deals does not help",
           "Create at least ${need}M of cap room today so we can absorb a contract next week. "
-          "Keep the top six players.",
+          "Keep the top six players by value.",
           _t6_setup, _t6_check, tags=["waive", "dead-money", "trap"])
 
 
@@ -268,7 +273,7 @@ def _t8_check(before, after, team):
     return keep_players(after, team, top_n_ids(before, team, 5))
 
 T8 = Task("rules_service_down", "Shed $5M while the rulebook is briefly unavailable",
-          "Shed at least $5M of payroll today without touching the top five. Make sure whatever "
+          "Shed at least $5M of payroll today without touching the top five by value. Make sure whatever "
           "you do is legal under the league rules.",
           _t8_setup, _t8_check, failures=lambda: Failures(service_down={"read_rule": 1}),
           tags=["trade", "recovery", "tool-error"])

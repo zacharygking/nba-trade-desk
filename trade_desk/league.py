@@ -69,6 +69,19 @@ def rating_from(row: dict | None) -> int:
     return int(round(max(40.0, min(95.0, v))))
 
 
+def value_of(season_rating: int, career_rating: int, season_row: dict | None, career_row: dict | None) -> int:
+    """Protection value: trust the season in proportion to games played.
+
+    w = min(1, games / 41); value = w * season_rating + (1 - w) * career_rating.
+    A player with no career row is his season rating. A player with no games is his career.
+    """
+    if not career_row:
+        return season_rating
+    gp = float((season_row or {}).get("gp") or 0)
+    w = min(1.0, gp / 41.0)
+    return int(round(w * season_rating + (1 - w) * career_rating))
+
+
 def _row_from_core(st: dict) -> dict | None:
     """Fallback season row from the core statistics endpoint when the stats page has none."""
     if not st:
@@ -121,6 +134,8 @@ def load_espn(path: Path = SNAPSHOT) -> LeagueState:
             id=f"E{r['espn_id']}", name=r["name"], pos=POS_MAP.get(r["pos"], "F"),
             rating=rating_from(rows["season_2025_26"]),
             career_rating=rating_from(rows["career"]),
+            value=value_of(rating_from(rows["season_2025_26"]), rating_from(rows["career"]),
+                           rows["season_2025_26"], rows["career"]),
             salary=sal if team else 0.0,
             years=max(1, int(r.get("years_remaining") or 1)) if team else 0,
             guaranteed=True,
@@ -143,11 +158,12 @@ def load_espn(path: Path = SNAPSHOT) -> LeagueState:
         rows = stat_rows(r)
         stats[pid] = rows
         rating, career = rating_from(rows["season_2025_26"]), rating_from(rows["career"])
+        val = value_of(rating, career, rows["season_2025_26"], rows["career"])
         if team in TEAMS and sum(1 for p in players.values() if p.team == team) < ROSTER_MAX:
             nxt = r.get("salary_2026_27")
             players[pid] = Player(
                 id=pid, name=r["name"], pos=POS_MAP.get(r["pos"], "F"), rating=rating,
-                career_rating=career,
+                career_rating=career, value=val,
                 salary=round(nxt / 1e6, 2) if nxt else MIN_CONTRACT, years=1, guaranteed=True,
                 no_trade=False, team=team,
                 salary_source="inferred:2026-27 contract" if nxt else "inferred:minimum",
@@ -155,7 +171,7 @@ def load_espn(path: Path = SNAPSHOT) -> LeagueState:
         else:
             players[pid] = Player(
                 id=pid, name=r["name"], pos=POS_MAP.get(r["pos"], "F"), rating=rating,
-                career_rating=career,
+                career_rating=career, value=val,
                 salary=0.0, years=0, guaranteed=True, no_trade=False, team=None,
                 asking=MIN_CONTRACT, salary_source="inferred:minimum",
             )
@@ -222,14 +238,15 @@ def build_synthetic(seed: int = 7) -> LeagueState:
     stats: dict[str, dict] = {}
     used_names: set[str] = set()
 
-    def attach(pid: str, target: int, pos: str) -> tuple[int, int]:
+    def attach(pid: str, target: int, pos: str) -> tuple[int, int, int]:
         season = synthetic_row(target, pos, rng)
         exp = rng.randint(1, 10)
         career = synthetic_row(int(target + rng.uniform(-6, 3)), pos, rng, gp=60 * exp)
         career["seasons"] = exp
         stats[pid] = {"season_2025_26": season, "season_2024_25": synthetic_row(int(target + rng.uniform(-4, 4)), pos, rng),
                       "career": career, "per_2025_26": None}
-        return rating_from(season), rating_from(career)
+        sr, cr = rating_from(season), rating_from(career)
+        return sr, cr, value_of(sr, cr, season, career)
 
     def new_name() -> str:
         while True:
@@ -248,9 +265,9 @@ def build_synthetic(seed: int = 7) -> LeagueState:
         rng.shuffle(positions)
         for i, r in enumerate(ratings):
             pid += 1
-            rating, career = attach(f"P{pid:04d}", r, positions[i])
+            rating, career, val = attach(f"P{pid:04d}", r, positions[i])
             players[f"P{pid:04d}"] = Player(
-                id=f"P{pid:04d}", name=new_name(), pos=positions[i], rating=rating, career_rating=career,
+                id=f"P{pid:04d}", name=new_name(), pos=positions[i], rating=rating, career_rating=career, value=val,
                 salary=salary_for(r, rng), years=rng.choice([1, 1, 2, 2, 3, 4]),
                 guaranteed=(r >= 60 or rng.random() < 0.5),
                 no_trade=(r >= 85 and rng.random() < 0.4), team=t,
@@ -259,9 +276,9 @@ def build_synthetic(seed: int = 7) -> LeagueState:
         pid += 1
         r = rng.randint(45, 74)
         pos = rng.choice(POSITIONS)
-        rating, career = attach(f"P{pid:04d}", r, pos)
+        rating, career, val = attach(f"P{pid:04d}", r, pos)
         players[f"P{pid:04d}"] = Player(
-            id=f"P{pid:04d}", name=new_name(), pos=pos, rating=rating, career_rating=career, salary=0.0,
+            id=f"P{pid:04d}", name=new_name(), pos=pos, rating=rating, career_rating=career, value=val, salary=0.0,
             years=0, guaranteed=True, no_trade=False, team=None, asking=salary_for(r, rng),
         )
     return LeagueState(season=SEASON, teams=teams, players=players, picks=_own_picks(teams),

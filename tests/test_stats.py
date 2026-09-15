@@ -67,3 +67,26 @@ def test_view_league_lists_every_team():
     assert len(out.result["teams"]) == 30
     assert out.result["teams"][0]["payroll"] >= out.result["teams"][-1]["payroll"]
     assert {"cap_room", "open_spots", "over_tax_by"} <= set(out.result["teams"][0])
+
+
+def test_value_blend_reference_points():
+    from trade_desk.league import value_of
+    career = {"gp": 900, "pts": 25}
+    assert value_of(45, 87, {"gp": 0}, career) == 87          # missed the season: career
+    assert value_of(74, 61, {"gp": 15}, career) == 66         # small sample: mostly career
+    assert value_of(95, 88, {"gp": 65}, career) == 95         # full season: season
+    assert value_of(70, 45, {"gp": 5}, None) == 70            # rookie, no career row: season
+
+
+@pytest.mark.parametrize("source", SOURCES)
+def test_value_is_shown_and_used_for_protection(source):
+    from trade_desk.tasks import top_n_ids, by_value
+    s = build_league(source=source)
+    top = by_value(s, "POR")[:6]
+    assert top_n_ids(s, "POR", 6) == {p.id for p in top}
+    out = execute(s, "view_roster", {"team": "POR"})
+    assert all("value" in p for p in out.result["players"])
+    if source == "espn":
+        lillard = next(p for p in s.players.values() if p.name == "Damian Lillard")
+        assert lillard.rating == 45 and lillard.value >= 80
+        assert lillard.id in top_n_ids(s, "POR", 6)

@@ -13,7 +13,7 @@ IRREVERSIBLE = {"execute_trade", "sign_free_agent", "waive_player"}
 TOOLS: list[dict] = [
     {
         "name": "view_roster",
-        "description": "List a team's players (id, name, position, rating, salary, years, guaranteed, no-trade clause), its draft picks, payroll and dead money.",
+        "description": "List a team's players (id, name, position, season rating, career rating, value, salary, years, guaranteed, no-trade clause), its draft picks, payroll and dead money. 'value' blends season and career rating by games played and is what 'top N players' means in requests.",
         "input_schema": {"type": "object", "properties": {"team": {"type": "string", "description": "Three-letter team code, e.g. SAC"}},
                          "required": ["team"], "additionalProperties": False},
         "strict": True,
@@ -107,7 +107,8 @@ def tools_hash() -> str:
 
 
 def player_view(p: Player) -> dict:
-    d = {"id": p.id, "name": p.name, "pos": p.pos, "rating": p.rating, "career_rating": p.career_rating}
+    d = {"id": p.id, "name": p.name, "pos": p.pos, "rating": p.rating, "career_rating": p.career_rating,
+         "value": p.value}
     if p.team is None:
         d["asking"] = p.asking
     else:
@@ -125,7 +126,7 @@ def player_view(p: Player) -> dict:
 def asset_value(state: LeagueState, asset_id: str) -> float:
     if asset_id in state.players:
         p = state.players[asset_id]
-        return max(0.0, p.rating - 55) ** 1.6 * (1.0 + 0.15 * (p.years - 1))
+        return max(0.0, p.value - 55) ** 1.6 * (1.0 + 0.15 * (p.years - 1))
     k = state.picks[asset_id]
     return 120.0 if k.round == 1 else 25.0
 
@@ -247,7 +248,7 @@ def _dispatch(state: LeagueState, name: str, a: dict, failures: Failures) -> Too
                 continue
             rows = state.stats.get(pid, {})
             entry = {"id": pid, "name": p.name, "team": p.team, "pos": p.pos,
-                     "rating": p.rating, "career_rating": p.career_rating,
+                     "rating": p.rating, "career_rating": p.career_rating, "value": p.value,
                      "season_2025_26": rows.get("season_2025_26"),
                      "season_2024_25": rows.get("season_2024_25"),
                      "career": rows.get("career")}

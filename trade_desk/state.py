@@ -34,6 +34,7 @@ class Player:
     asking: float = 0.0    # free agents only: asking salary
     salary_source: str = "contract"   # "contract" | "inferred:2026-27 contract" | "inferred:minimum"
     career_rating: int = 45           # same formula as rating, over career per-game averages
+    value: int = 45                   # games-weighted blend of the two; what "top N players" means
 
 
 @dataclass
