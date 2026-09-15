@@ -20,8 +20,8 @@ nba-trade-desk publish --runs runs/agents-v5-haiku runs/agents-v5-sonnet runs/ag
 
 # motherlode judges (blind packets under opaque keys; a subagent or a person records scores, or an API model does)
 motherlode pool  --dataset datasets/trajectories-v5 --out work/pool
-motherlode grade --pool work/pool --key <key> --rater claude-code:opus --scores '<json>'
-motherlode grade --pool work/pool --model claude-opus-5
+motherlode survey --pool work/pool --key <key> --rater claude-code:opus --scores '<json>'
+motherlode survey --pool work/pool --model claude-opus-5
 
 # a person grades a sample blind, every dimension on one page, the judge revealed after commit
 motherlode handpick --dataset datasets/trajectories-v5 --pool work/pool --ids <pilot ids> --rater zachary --out work/grade.html

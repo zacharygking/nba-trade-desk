@@ -8,7 +8,7 @@ dependencies = ["anthropic>=1.0"]
 [project.optional-dependencies]
 dev = ["pytest>=8"]
 # the gate is motherlode's; the trade desk runs its commands and never imports it
-tools = ["motherlode @ git+https://github.com/zacharygking/motherlode@v0.2.2"]
+tools = ["motherlode @ git+https://github.com/zacharygking/motherlode@v0.2.3"]
 
 [project.scripts]
 nba-trade-desk = "trade_desk.cli:main"

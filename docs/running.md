@@ -49,7 +49,7 @@ final reply; and the agent is instructed, not prevented, from reading the reposi
 
 ```
 .venv/bin/nba-trade-desk publish --runs runs/agents-v5-haiku runs/agents-v5-sonnet runs/agents-v5-opus --out datasets/trajectories-v5 --name trajectories-v5
-.venv/bin/motherlode pool --dataset datasets/trajectories-v5 --out work/pool             # then grade, handpick, prospect, paydirt
+.venv/bin/motherlode pool --dataset datasets/trajectories-v5 --out work/pool             # then survey, handpick, prospect, paydirt
 .venv/bin/nba-trade-desk results --items datasets/trajectories-v5 --graded datasets/trajectories-v5-graded
 ```
 
