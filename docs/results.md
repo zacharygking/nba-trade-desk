@@ -1,5 +1,57 @@
 # Results
 
+## Judge pass one: 48 trajectories, six dimensions
+
+Every trajectory from both sets was graded once by a blind judge (the Opus tier, through the
+anonymized packet pool in `trade_desk/judge.py`) on the six rubric dimensions. Judgments are in
+each run's `judgments.jsonl` with rationales. The rubric was still draft v0; this pass is what
+freezes it.
+
+**Judge versus ground truth on task success: 47 of 48 agree.** The one disagreement is the
+rulebook gap already noted: the judge failed a Cleveland waiver under R3's "may only reduce
+payroll" wording, while the engine, and so ground truth, allowed it. A second judge passed the
+same kind of waiver on another trajectory and flagged the same rule. The text and the engine
+have to agree before the human pass.
+
+Mean score per dimension (NA excluded; D1 is 0 to 1, the rest 0 to 2):
+
+| Set | Tier | D1 success | D2 correctness | D3 economy | D4 irreversible | D5 recovery | D6 grounding | Total of 11 |
+|---|---|---|---|---|---|---|---|---|
+| First | Haiku 4.5 | 0.62 | 1.12 | 1.00 | 1.43 | 1.50 | 1.88 | 7.0 |
+| First | Sonnet | 1.00 | 1.88 | 1.62 | 2.00 | 2.00 | 1.88 | 9.1 |
+| First | Opus | 1.00 | 2.00 | 1.38 | 2.00 | 2.00 | 1.88 | 9.8 |
+| Second | Haiku 4.5 | 0.75 | 1.62 | 2.00 | 1.29 | 2.00 | 2.00 | 8.2 |
+| Second | Sonnet | 1.00 | 2.00 | 2.00 | 2.00 | 2.00 | 1.88 | 9.4 |
+| Second | Opus | 1.00 | 1.88 | 1.88 | 2.00 | 2.00 | 2.00 | 9.5 |
+
+What the judge separates, and what it does not:
+
+- **Haiku's gap is in D4 and D1.** Irreversible moves on a guess (waiving guaranteed contracts
+  with nothing pending, a salary sent in dollars twice) and the two failed cap-room runs. D6
+  grounding was near the ceiling for every tier: agents almost never acted on remembered facts.
+- **Call economy (D3) moved most between sets**, which is the interface fixes showing up in the
+  scores, not the agents changing.
+- **D6 rarely bit.** The deductions were final-reply overreach ("every team is at 15" from seven
+  cap sheets) rather than remembered NBA facts. On the real league, recall was not the problem.
+
+What this pass found wrong with the rubric and the packet, to fix before humans grade:
+
+- **D5 is ambiguous.** The rubric says recovery applies to "a partner that declines a legal offer",
+  so judges scored D5 on 15 of the 36 trajectories from tasks with no injected failure, treating
+  ordinary valuation declines as failures. The packet will name the injected failure, and D5 will
+  apply only to it.
+- **The packet's tool reference was anachronistic** for the first set. It described the current
+  `read_rule` and `view_league`, so judges read the old titles-only `read_rule` as a degraded
+  tool and docked one run for not calling a tool it did not have. Trajectories will carry their
+  own tool descriptions.
+- **D2 does not distinguish** a well-formed proposal that turns out illegal, which is the tool's
+  intended dry run, from a genuinely malformed call. Judges handled it by docking only for
+  violations computable from data the agent already held; the rubric will say that.
+- **Final replies have mangled dollar figures** in some session-mode runs, because the reply went
+  through a double-quoted shell string and `$5.7M` became `.7M`. Judges recognized it as an
+  artifact and did not penalize it. Session mode will take the reply from a file.
+- **R3's text and the engine disagree on waivers** by over-apron teams, as above.
+
 ## Second runs: the ten-tool set, tasks v5
 
 After the fixes below, the same three tiers ran the eight tasks again with the call limit
@@ -123,11 +175,10 @@ recorded. Rerunning through the API client is one command once a key is set; see
 
 ## Next
 
-1. Judge: one prompt, six dimensions from [`rubric/RUBRIC.md`](../rubric/RUBRIC.md), each with its
-   own score.
+1. Rubric v1: D5 only for injected failures, D2 clarified, packets carry the run's own tool
+   descriptions and name the injected failure. Fix R3 and the reply capture.
 2. Grading tool: one local HTML file that reads the trajectories and exports labels as JSONL.
 3. Pilot on 10, freeze the rubric, grade 60. Kappa with bootstrap intervals, prevalence beside each
    kappa, judge and human accuracy against ground truth, a length check.
 4. Adjudicate every disagreement: judge wrong, human wrong, or rubric ambiguous.
-5. Make R3's text and the engine agree on waivers by over-apron teams.
-6. Rerun through the API on both leagues; measure tool grounding against the synthetic baseline.
+5. Rerun through the API on both leagues; measure tool grounding against the synthetic baseline.
