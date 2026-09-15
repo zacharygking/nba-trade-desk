@@ -3,9 +3,10 @@
 ## Judge pass two: rubric v1, packets with the run's own rulebook
 
 All 48 trajectories were graded again by the same blind judge under rubric v1, from packets that
-carry each run's own rulebook and tool set and name the injected failures. Both passes are in
-each run's `judgments.jsonl`, distinguished by rubric hash; the report prints a DRIFT line when
-hashes differ.
+carry each run's own rulebook and tool set and name the injected failures. These judgments are
+the ones in `datasets/trajectories-v5-graded` and `datasets/trajectories-v2-archive-graded`,
+migrated to motherlode's label rows; `nba-trade-desk results` reproduces every table below from
+them. The first pass, under rubric v0, is kept in `runs/archive/judgments-rubric-v0.jsonl`.
 
 **Judge versus ground truth on task success: 45 of 48.** The three disagreements are the cases
 adjudication exists for, and each has a proposed verdict:
@@ -34,8 +35,9 @@ never executed anything: waivers of guaranteed contracts with nothing pending, a
 id in a trade proposal, a salary sent in dollars twice. Grounding stayed at the ceiling for every
 tier; no run leaned on remembered NBA facts.
 
-The human grading pass runs against this rubric and these packets. Its label rows and the
-judge's share the rubric hash `b6d251d6a3fe`.
+The human grading pass runs against this rubric and these packets, through motherlode's
+handpick over `datasets/trajectories-v5`. Its label rows and the judge's share the rubric hash
+`38daa3c66210` (text plus spec).
 
 ## Judge pass one: 48 trajectories, six dimensions (rubric v0)
 
@@ -217,8 +219,7 @@ recorded. Rerunning through the API client is one command once a key is set; see
 ## Next
 
 1. Tighten the forward task's check to require a net gain, per the adjudication above.
-2. Grading tool: one local HTML file that reads the trajectories and exports labels as JSONL.
-3. Pilot on 10, freeze the rubric, grade 60. Kappa with bootstrap intervals, prevalence beside each
-   kappa, judge and human accuracy against ground truth, a length check.
-4. Adjudicate every disagreement: judge wrong, human wrong, or rubric ambiguous.
-5. Rerun through the API on both leagues; measure tool grounding against the synthetic baseline.
+2. The pilot: ten trajectories in motherlode's grading tool, then fix the rubric and freeze it.
+3. The real pass: kappa per dimension with intervals, judge and human against ground truth,
+   adjudication of every disagreement, all in the graded dataset.
+4. Rerun through the API on both leagues; measure tool grounding against the synthetic baseline.

@@ -13,9 +13,15 @@ jobs:
       - uses: astral-sh/setup-uv@v3
         with:
           python-version: "3.12"
-      - name: Install
-        run: uv pip install --system -e ".[dev]"
+      - name: Install, with the motherlode tools extra
+        run: uv pip install --system -e ".[dev,tools]"
       - name: Test on both leagues
         run: python -m pytest -q
       - name: Smoke run, no API
         run: python -m trade_desk.run run --client noop --tasks all --out /tmp/noop
+      - name: Publish the smoke run as a dataset and verify it
+        run: |
+          python -m trade_desk.publish --runs /tmp/noop --out /tmp/noop-items --name noop-items
+          motherlode dataset verify /tmp/noop-items
+          motherlode dataset verify datasets/trajectories-v5
+          motherlode dataset verify datasets/trajectories-v5-graded

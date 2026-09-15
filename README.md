@@ -15,9 +15,10 @@ it remembers.
 ## Status
 
 The league, rulebook, tools, eight tasks and the agent loop are built and tested. Three Claude
-Code tiers have run every task twice, and a blind judge has graded all 48 trajectories on six
-dimensions, twice: once under the draft rubric and once under v1. Under v1 the judge agrees with
-ground truth on task success in 45 of 48, and each disagreement has a proposed adjudication. The grading tool and
+Code tiers have run every task twice. The current set is published as a dataset, a blind judge
+has graded it on six dimensions through motherlode's gate, and the graded dataset is committed
+beside it. The judge agrees with ground truth on task success in 23 of 24 current trajectories;
+the one disagreement has a proposed adjudication. The human grading pass is next. The grading tool and
 the human-validated agreement numbers are next.
 
 | Ground truth passes, 8 tasks | Haiku 4.5 | Sonnet | Opus |
@@ -41,8 +42,10 @@ down to a second. That is what the judge is for. Details in [docs/results.md](do
   moves without checking, recovery after failure, and tool grounding.
   [rubric/RUBRIC.md](rubric/RUBRIC.md)
 - **Every number is reproducible.** Trajectories, the data snapshot and the rulebook hash are
-  committed. Human grading and judge validation use the shared
-  [motherlode](https://github.com/zacharygking/motherlode) library. [docs/running.md](docs/running.md)
+  committed. Judging, hand grading and validation happen in
+  [motherlode](https://github.com/zacharygking/motherlode), which the trade desk talks to only
+  through datasets: it publishes one, motherlode grades it, it reads the graded one back.
+  [docs/datasets.md](docs/datasets.md)
 
 ## Quick start
 
@@ -60,7 +63,7 @@ uv venv --python 3.12 .venv && uv pip install -e ".[dev]"
 | [docs/league.md](docs/league.md) | Where the data comes from, the rating formula, simplifications, coverage |
 | [docs/tasks.md](docs/tasks.md) | Tools, tasks and their traps, the trajectory record |
 | [docs/running.md](docs/running.md) | Setup, CLI, outside-agent sessions, repo layout |
-| [docs/results.md](docs/results.md) | Both run sets, the judge pass, what is next |
-| [docs/motherlode-proposal.md](docs/motherlode-proposal.md) | Proposal for the shared data library: multi-dimension rubrics and the division of labor |
+| [docs/datasets.md](docs/datasets.md) | The datasets the trade desk publishes and reads back, and the gate that runs between them |
+| [docs/results.md](docs/results.md) | Both run sets, the judge passes, what is next |
 | [rulebook/RULEBOOK.md](rulebook/RULEBOOK.md) | The rulebook the agent and the grader read |
 | [rubric/RUBRIC.md](rubric/RUBRIC.md) | The grading rubric |
