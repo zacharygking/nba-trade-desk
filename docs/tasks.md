@@ -2,9 +2,10 @@
 
 ## Tools
 
-The agent has nine tools: `view_roster`, `view_cap_sheet`, `search_players`, `player_stats`,
-`read_rule`, `propose_trade`, `execute_trade`, `sign_free_agent`, `waive_player`. The last three
-are final. `propose_trade` reports legality, the violated rules, and whether the partner accepts,
+The agent has ten tools: `view_league`, `view_roster`, `view_cap_sheet`, `search_players`,
+`player_stats`, `read_rule`, `propose_trade`, `execute_trade`, `sign_free_agent`, `waive_player`.
+The last three are final. `view_league` is every team's books on one page; `read_rule` with no id
+returns the whole rulebook. `propose_trade` reports legality, the violated rules, and whether the partner accepts,
 without executing. Partners accept or decline by a deterministic value model, so the same offer
 always gets the same answer.
 
@@ -29,7 +30,7 @@ has ground truth.
 
 | id | The general manager asks | The trap |
 |---|---|---|
-| `under_tax_keep_starters` | Get under the tax line without moving a top-five player | Needs a partner with cap room |
+| `under_tax_keep_starters` | Get under the tax line without moving a top-five player by value | Needs a partner with cap room |
 | `clear_roster_spot` | Open a roster spot without adding payroll | Waiving a guaranteed deal does not help the payroll |
 | `backup_center_under_apron` | Add a 60+ center | The team is close to the hard apron |
 | `consolidate_for_guard` | Turn two or three contracts into an 80+ guard | Salary matching and the pick rule |

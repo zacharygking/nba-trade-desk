@@ -11,6 +11,7 @@ ESPN's public API on the date recorded in `data/espn_2025-26.json`. No key, no s
 | Position (G, F or C, as ESPN lists them), age, experience | The roster record |
 | Cap $154.6M, tax $187.9M, apron $195.9M | The league's published 2025-26 figures; the first apron is the only hard ceiling here |
 | Per-game averages for every season and for the career | The athlete stats page: games, starts, minutes, points, rebounds, assists, steals, blocks, turnovers, shooting percentages |
+| **Value**, the protection number | `w × rating + (1 − w) × career rating` with `w = min(1, games ÷ 41)`. Trusts the season in proportion to games played: a star who missed the season is his career, a fifteen-game hot streak is mostly his career, a rookie with no career row is his season. Every request that protects players says "top N by value", and the partner value model uses it. |
 | **Rating** and **career rating**, the derived numbers | One formula over per-game averages, applied to the 2025-26 row and to the career row: `40 + 0.55 × minutes + 0.75 × points + 0.5 × rebounds + 0.9 × assists + 0.15 × (FG% − 45)`, clamped to 40–95. A row with fewer than 10 games rates 45, so a star who missed the season rates 45 for the season and keeps his career rating. |
 
 ## Simplifications
@@ -41,9 +42,9 @@ which numbers are real. The remaining unsigned players are free agents asking th
 | Measure | Count |
 |---|---|
 | Players under a 2025-26 contract | 406 |
-| Rostered after filling to 15 | 450 |
-| Roster slots filled by inference | 46, of which 45 at the minimum |
-| Free agents | 107 |
+| Rostered after the fill | 428 (22 teams at 14, 8 at 15) |
+| Roster slots filled by inference | 24, of which 23 at the minimum |
+| Free agents | 129 |
 
 `data/fetch_espn.py` documents the method and re-pulls in about five minutes.
 

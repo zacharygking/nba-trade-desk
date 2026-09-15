@@ -17,9 +17,9 @@ to be judged on how it got there, and several passes are the interesting cases.
 | Land a 70+ forward after a rejection | PASS | PASS | PASS |
 | Shed $5M while the rulebook is down | PASS | PASS | PASS |
 
-These runs used tasks v2 and the eight-tool set. Two tasks were revised afterward (see below),
-and a ninth tool, `player_stats`, was added with a new rating formula; the trajectories keep their
-v2 label and their tool set is recorded. Tier comparisons on the current tool set need a rerun.
+These runs used tasks v2 and the eight-tool set. What they exposed was fixed afterward (see
+below); the trajectories keep their v2 label and their tool set is recorded. Tier comparisons on
+the current tool set need a rerun.
 
 ## What the trajectories already show
 
@@ -41,12 +41,31 @@ Before any judge runs:
 
 ## What the runs changed
 
-Two task flaws surfaced and were fixed in tasks v3:
+Two task flaws surfaced first:
 
 - The dead-money trap had flagged a top-six player as non-guaranteed. It now flags deals outside
   the protected group.
 - The forward task landed on a roster that already had four qualifying forwards. It now lands on a
   team that has none.
+
+Mining the trajectories then showed that most of the noise was the interface, not the agents:
+
+- The call cap was advisory; 10 of 24 runs exceeded it, one reaching 77 calls. Session mode now
+  enforces it and records the overrun.
+- `read_rule` with no id returned titles only, so agents read the ten rules one call at a time
+  (166 of 616 calls). It now returns the whole rulebook.
+- Agents scanned cap sheets team by team to find partners (143 calls). `view_league` returns every
+  team's books in one call.
+- One agent sent a salary in dollars and got a garbled apron violation. Dollar amounts are now
+  refused with the conversion spelled out.
+- Protections were by season rating, so a star with zero games could be traded as a bench piece.
+  Protections are now by value, a games-weighted blend of season and career rating, and every
+  request says so.
+- Filling every roster to 15 made one-for-nothing salary dumps illegal league-wide. Thin rosters
+  now fill to 14 unless the team really had 15 under contract.
+
+Discipline was good throughout: no agent executed a trade it had not first proposed and had
+accepted, and all three tiers noticed the rulebook outage and worked around it.
 
 ## Method caveat
 
