@@ -1,0 +1,45 @@
+{
+ "created_at": "2026-09-15T18:03:05Z",
+ "dataset_sha256": "c00cf6e40d60",
+ "files": {
+  "items.jsonl": "9fd33f769235",
+  "rubric.json": "bc4eb99f15f6",
+  "rubric.md": "b6d251d6a3fe"
+ },
+ "meta": {
+  "code_commits": [
+   "24a1859"
+  ],
+  "pilot_ids": [],
+  "runs": [
+   "agents-haiku",
+   "agents-sonnet",
+   "agents-opus"
+  ],
+  "tasks": [
+   "backup_center_under_apron",
+   "clear_roster_spot",
+   "consolidate_for_guard",
+   "dead_money_trap",
+   "partner_rejects_first",
+   "rules_service_down",
+   "trade_restriction_trap",
+   "under_tax_keep_starters"
+  ],
+  "tiers": [
+   "claude-code:haiku",
+   "claude-code:opus",
+   "claude-code:sonnet"
+  ]
+ },
+ "name": "trajectories-v2-archive",
+ "producer": "nba-trade-desk",
+ "schema": "items-v1",
+ "sources": [
+  {
+   "dataset_sha256": "43cefbf6c03c",
+   "name": "espn-snapshot"
+  }
+ ],
+ "version": "1"
+}

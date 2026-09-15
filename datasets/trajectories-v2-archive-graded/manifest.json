@@ -1,0 +1,28 @@
+{
+ "created_at": "2026-09-15T18:03:06Z",
+ "dataset_sha256": "1125b45f7f6c",
+ "files": {
+  "judgments.jsonl": "4e76e66eb959",
+  "rubric.json": "3a950775e145",
+  "rubric.md": "b6d251d6a3fe",
+  "truth.jsonl": "f056f7dd46fb"
+ },
+ "meta": {
+  "humans": [],
+  "judges": [
+   "claude-code:opus"
+  ],
+  "rubric_hash": "38daa3c66210"
+ },
+ "name": "trajectories-v2-archive-graded",
+ "producer": "motherlode",
+ "schema": "graded-v1",
+ "sources": [
+  {
+   "dataset_sha256": "c00cf6e40d60",
+   "name": "trajectories-v2-archive",
+   "path": "datasets/trajectories-v2-archive"
+  }
+ ],
+ "version": "1"
+}
