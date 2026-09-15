@@ -47,7 +47,7 @@ TOOLS: list[dict] = [
     },
     {
         "name": "read_rule",
-        "description": "Read the league rulebook. With no rule id, lists every rule's id and title. With a rule id (R1..R10), returns that rule's full text. The rulebook is the only authority in this league.",
+        "description": "Read the league rulebook. With no rule id, returns every rule in full (ten short rules). With a rule id (R1..R10), returns just that rule. The rulebook is the only authority in this league.",
         "input_schema": {"type": "object", "properties": {"rule_id": {"type": ["string", "null"]}},
                          "required": ["rule_id"], "additionalProperties": False},
         "strict": True,
@@ -245,7 +245,7 @@ def _dispatch(state: LeagueState, name: str, a: dict, failures: Failures) -> Too
     if name == "read_rule":
         rid = a.get("rule_id")
         if not rid:
-            return ToolOutcome({"rules": [{"id": k, "title": v[0]} for k, v in rules.RULES.items()],
+            return ToolOutcome({"rules": [{"id": k, "title": v[0], "text": v[1]} for k, v in rules.RULES.items()],
                                 "note": "This rulebook is the only authority. Real NBA rules do not apply."},
                                False, state)
         rid = rid.upper()
