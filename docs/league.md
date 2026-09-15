@@ -31,9 +31,10 @@ All deliberate:
 ## Coverage, and the one inference that closes the gap
 
 ESPN only serves current rosters, so 2025-26 teams are rebuilt from contract records, and players
-who left the league over the summer are missing. Each thin team is filled to 15 with its own
+who left the league over the summer are missing. Each thin team is filled to 14, or to 15 if it had 15 under contract, with its own
 current players who have no 2025-26 contract (2026 draftees, camp invitees, summer signings),
-priced from their 2026-27 contract when ESPN has one and at the minimum otherwise. Every such
+priced from their 2026-27 contract when ESPN has one and at the minimum otherwise. The league
+therefore keeps some open roster spots, as the real one does. Every such
 player carries `salary_source: inferred:...` in tool results, so the agent and the grader can see
 which numbers are real. The remaining unsigned players are free agents asking the minimum.
 

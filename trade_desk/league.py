@@ -152,6 +152,9 @@ def load_espn(path: Path = SNAPSHOT) -> LeagueState:
     # salary_source flag says so in every tool result. The rest become free agents at the minimum.
     unsigned = sorted(snap.get("unsigned", []),
                       key=lambda r: (-(r.get("salary_2026_27") or 0), r["name"]))
+    # Fill target: 15 only for teams that had 15 under contract; otherwise 14, so the league keeps
+    # some open roster spots and one-for-nothing salary dumps stay possible somewhere.
+    fill_to = {t: (ROSTER_MAX if len(rs) >= ROSTER_MAX else ROSTER_MAX - 1) for t, rs in by_team.items()}
     for r in unsigned:
         team = r.get("current_team")
         pid = f"E{r['espn_id']}"
@@ -159,7 +162,7 @@ def load_espn(path: Path = SNAPSHOT) -> LeagueState:
         stats[pid] = rows
         rating, career = rating_from(rows["season_2025_26"]), rating_from(rows["career"])
         val = value_of(rating, career, rows["season_2025_26"], rows["career"])
-        if team in TEAMS and sum(1 for p in players.values() if p.team == team) < ROSTER_MAX:
+        if team in TEAMS and sum(1 for p in players.values() if p.team == team) < fill_to.get(team, ROSTER_MAX - 1):
             nxt = r.get("salary_2026_27")
             players[pid] = Player(
                 id=pid, name=r["name"], pos=POS_MAP.get(r["pos"], "F"), rating=rating,
