@@ -26,8 +26,9 @@ All deliberate:
 - The rulebook is ten rules, not the collective bargaining agreement. See
   [`rulebook/RULEBOOK.md`](../rulebook/RULEBOOK.md). **The rulebook is the only authority in this
   league.** Real NBA rules do not apply, and that is stated to the agent and the grader.
-- Five real teams sat above the first apron in 2025-26, so the rulebook lets an over-apron team
-  make payroll-reducing moves and nothing else, which is roughly how the real apron behaves.
+- Five real teams sat above the first apron in 2025-26, so the rulebook forbids an over-apron team
+  any move that increases payroll, and nothing else. Waivers never increase payroll, so they stay
+  legal, which is roughly how the real apron behaves.
 
 ## Coverage, and the one inference that closes the gap
 

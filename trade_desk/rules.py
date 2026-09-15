@@ -17,8 +17,9 @@ RULES: dict[str, tuple[str, str]] = {
            f"${MATCH_CUSHION:.1f}M. Draft picks carry no salary."),
     "R3": ("Hard apron",
            f"The hard apron is ${APRON:.0f}M. No transaction may take a team's payroll above the "
-           f"apron. A team that is already above the apron may only make transactions that reduce "
-           f"its payroll."),
+           f"apron, and a team already above the apron may not make any transaction that increases "
+           f"its payroll. A waiver never increases payroll, so a team above the apron may still "
+           f"waive."),
     "R4": ("Roster limits",
            f"No transaction may leave a team with more than {ROSTER_MAX} players. A team must "
            f"finish the day with at least {ROSTER_MIN} players."),
@@ -110,9 +111,9 @@ def check_trade(state: LeagueState, team: str, send: list[str], partner: str,
     for t, out_assets, in_assets in ((team, send, receive), (partner, receive, send)):
         if after.roster_size(t) > ROSTER_MAX:
             v.append(Violation("R4", f"{t} would have {after.roster_size(t)} players."))
-        if after.payroll(t) > APRON and after.payroll(t) >= state.payroll(t):
+        if after.payroll(t) > APRON and after.payroll(t) > state.payroll(t):
             v.append(Violation("R3", f"{t} payroll would be ${after.payroll(t):.1f}M, above the apron"
-                                     f"{' and not reduced' if state.payroll(t) > APRON else ''}."))
+                                     f"{' and higher than before' if state.payroll(t) > APRON else ''}."))
         if after.payroll(t) > CAP:
             out_s, in_s = _salary_of(state, out_assets), _salary_of(state, in_assets)
             limit = round(out_s * MATCH_PCT + MATCH_CUSHION, 2)

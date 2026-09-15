@@ -139,3 +139,25 @@ def test_waiver_dead_money():
     q.guaranteed = False
     after2 = apply_waiver(s, "SAC", q.id)
     assert after2.payroll("SAC") < before
+
+
+def test_over_apron_team_may_waive_and_swap_but_not_add():
+    from trade_desk.rules import check_trade, apply_waiver
+    s = build_synthetic(7)
+    scale_payroll_to(s, "SAC", APRON + 10)
+    fill_roster_to(s, "SAC", 14)
+    scale_payroll_to(s, "LAL", CAP - 40)
+    a = s.roster("SAC")[-1]
+    # equal-salary swap: payroll unchanged, allowed
+    b = next(p for p in s.roster("LAL") if abs(p.salary - a.salary) < 0.01) if any(
+        abs(p.salary - a.salary) < 0.01 for p in s.roster("LAL")) else None
+    if b is not None:
+        b.no_trade = False
+        assert "R3" not in {v.rule for v in check_trade(s, "SAC", [a.id], "LAL", [b.id])}
+    # taking back more salary than sent: refused
+    big = max(s.roster("LAL"), key=lambda p: p.salary); big.no_trade = False
+    assert "R3" in {v.rule for v in check_trade(s, "SAC", [a.id], "LAL", [big.id])}
+    # waiver: always allowed, payroll flat when guaranteed
+    a.guaranteed = True
+    after = apply_waiver(s, "SAC", a.id)
+    assert abs(after.payroll("SAC") - s.payroll("SAC")) < 0.01

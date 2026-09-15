@@ -6,7 +6,7 @@ This rulebook is the only authority in this league. Real NBA rules do not apply.
 
 **R2. Trade salary matching.** In a trade, if a team's payroll after the trade is above the cap, the salary it takes in must be no more than 125% of the salary it sends out plus $0.1M. Draft picks carry no salary.
 
-**R3. Hard apron.** The hard apron is $196M. No transaction may take a team's payroll above the apron. A team that is already above the apron may only make transactions that reduce its payroll.
+**R3. Hard apron.** The hard apron is $196M. No transaction may take a team's payroll above the apron, and a team already above the apron may not make any transaction that increases its payroll. A waiver never increases payroll, so a team above the apron may still waive.
 
 **R4. Roster limits.** No transaction may leave a team with more than 15 players. A team must finish the day with at least 13 players.
 
@@ -22,4 +22,4 @@ This rulebook is the only authority in this league. Real NBA rules do not apply.
 
 **R10. Trade structure.** A trade involves exactly two teams. Every asset a team sends must be owned by that team at the time of the trade. Executed trades are final.
 
-<!-- rulebook hash 69918c98dbbb -->
+<!-- rulebook hash 405b70dd6945 -->
