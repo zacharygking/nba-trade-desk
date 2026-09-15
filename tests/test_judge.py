@@ -70,7 +70,7 @@ def test_packet_uses_the_runs_own_tools_and_names_injected_failures():
     assert r == ["the first 1 call to read_rule return 'service unavailable'"]
 
 
-def test_handpick_and_labels_round_trip(tmp_path, capsys):
+def test_items_and_labels_round_trip(tmp_path, capsys):
     run = tmp_path / "run"
     run.mkdir()
     (run / "trajectories.jsonl").write_text(json.dumps(_traj()) + "\n")
@@ -78,18 +78,29 @@ def test_handpick_and_labels_round_trip(tmp_path, capsys):
     judge.main(["pool", "--runs", str(run), "--out", str(pool)])
     key = next(iter(json.loads((pool / "manifest.json").read_text())))
     scores = json.dumps({d: {"score": "NA" if d in ("D4", "D5") else 1, "rationale": "why"} for d in judge.DIMENSIONS})
-    judge.main(["record", "--key", key, "--pool", str(pool), "--judge", "j", "--scores", scores])
-    out = tmp_path / "hp"
-    judge.main(["handpick", "--pool", str(pool), "--out", str(out), "--rater", "z", "--dimensions", "D1", "D4"])
-    assert (out / "grade-D1.html").exists() and (out / "grade-D4.html").exists()
-    html = (out / "grade-D1.html").read_text()
-    assert judge.rubric_hash() in html and "judge_D1" in html
-    assert "1: why" not in html                      # hidden field is encoded, not in the clear
-    item = json.loads((out / "items.jsonl").read_text())
-    assert item["id"] == key and item["judge_D4"] == "NA: why" and "Rulebook" in item["packet"]
-    judge.main(["labels", "--pool", str(pool), "--dimension", "D4", "--out", str(out / "judge-D4.jsonl")])
-    row = json.loads((out / "judge-D4.jsonl").read_text())
-    assert row == {"item_id": key, "rater": "j", "label": "NA", "rubric_hash": judge.rubric_hash(), "pass": "blind"}
+    judge.main(["score", "--key", key, "--pool", str(pool), "--judge", "j", "--scores", scores])
+    judge.main(["record", "--key", key, "--pool", str(pool), "--judge", "j2", "--scores", scores])   # old name
+    judge.main(["items", "--pool", str(pool), "--dimension", "D4", "--out", str(tmp_path / "items-D4.jsonl")])
+    item = json.loads((tmp_path / "items-D4.jsonl").read_text().splitlines()[0])
+    assert item["id"] == f"{key}:D4" and item["judge"].startswith("NA: why") and "Rulebook" in item["packet"]
+    out = capsys.readouterr().out
+    assert "motherlode handpick" in out and "--labels 0 1 2 NA" in out
+    judge.main(["labels", "--pool", str(pool), "--dimension", "D4", "--out", str(tmp_path / "judge-D4.jsonl")])
+    rows = [json.loads(l) for l in (tmp_path / "judge-D4.jsonl").read_text().splitlines()]
+    assert rows[0] == {"item_id": f"{key}:D4", "rater": "j", "label": "NA", "rubric_hash": judge.rubric_hash(), "pass": "blind"}
+    assert rows[1]["rater"] == "j2"
+    judge.main(["report", str(run)])
+    assert "D1 agrees with ground truth" in capsys.readouterr().out
+
+
+def test_console_script_dispatches(capsys):
+    from trade_desk import cli
+    import pytest
+    with pytest.raises(SystemExit) as e:
+        cli.main(["--help"])
+    assert e.value.code == 0 and "judge" in capsys.readouterr().out
+    cli.main(["run", "rulebook"])
+    assert "R1" in capsys.readouterr().out
 
 
 def test_rubric_hash_matches_motherlode():

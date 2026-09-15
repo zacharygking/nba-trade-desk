@@ -5,25 +5,27 @@ adjustments, every call and result, the final reply, the state diff) and nothing
 it: no ground-truth result, no model label, no other run's scores.
 
   python -m trade_desk.judge packets --run runs/agents-v5-opus --out runs/agents-v5-opus/packets
-      writes one Markdown packet per trajectory (packet-<index>.md) plus the rubric
+      one Markdown packet per trajectory (packet-<index>.md) plus the rubric
   python -m trade_desk.judge pool --runs runs/agents-v5-haiku runs/agents-v5-sonnet ... --out runs/.judge
-      writes every packet under a random key (pool/<key>.md) plus manifest.json, so a grader
-      cannot tell which model or run it is grading from the path
-  python -m trade_desk.judge record --run runs/agents-v5-opus --index 3 --judge claude-code:opus --scores '<json>'
-  python -m trade_desk.judge record --key <key> --pool runs/.judge --judge claude-code:opus --scores '<json>'
-      appends one judgment to <run>/judgments.jsonl; scores is
+      every packet under an opaque key (pool/<key>.md) plus manifest.json, so a grader cannot
+      tell which model or run a packet came from
+  python -m trade_desk.judge score --key <key> --judge claude-code:opus --scores '<json>'
+  python -m trade_desk.judge score --run runs/agents-v5-opus --index 3 --judge claude-code:opus --scores '<json>'
+  python -m trade_desk.judge score --run runs/agents-v5-opus --model claude-opus-5
+      one judgment appended to <run>/judgments.jsonl: from a grader's JSON, or from an API model
+      given the same packet and instructions; scores is
       {"D1": {"score": 1, "rationale": "..."}, ..., "D6": {...}} with "NA" allowed on D4 and D5
-  python -m trade_desk.judge summary runs/agents-v5-haiku runs/agents-v5-sonnet runs/agents-v5-opus
+  python -m trade_desk.judge report runs/agents-v5-haiku runs/agents-v5-sonnet runs/agents-v5-opus
       judgments beside ground truth, per run and per dimension
-  python -m trade_desk.judge handpick --pool runs/.judge --out runs/handpick --rater zachary [--keys k1 k2 ...]
-      builds the human grading tools with motherlode: one blind, assisted HTML file per rubric
-      dimension over the pooled packets, the judge's score and rationale hidden until commit
-  python -m trade_desk.judge labels --pool runs/.judge --dimension D1 --out runs/handpick/judge-D1.jsonl
-      exports the recorded judgments for one dimension as motherlode label rows, keyed by pool key,
-      so `motherlode prospect --human labels-zachary-D1.jsonl --judge judge-D1.jsonl` runs per dimension
+  python -m trade_desk.judge items --dimension D1 [--out grading/tools/items-D1.jsonl]
+      the pool as motherlode items for one dimension: packet as context, the judge's score and
+      rationale as the hidden field, ids suffixed with the dimension so the six tools stay apart.
+      Then: motherlode handpick --items grading/tools/items-D1.jsonl --rubric rubric/RUBRIC.md ...
+  python -m trade_desk.judge labels --dimension D1 [--out grading/labels/judge-D1.jsonl]
+      the recorded judgments for one dimension as motherlode label rows with the same ids, so
+      motherlode prospect --human <human file> --judge grading/labels/judge-D1.jsonl runs per dimension
 
-An API judge (`judge run --model ...`) uses the same packet and parser through the Anthropic
-client; it is the same prompt either way.
+Old names still work: record and run (now score), summary (now report), handpick (now items).
 """
 from __future__ import annotations
 
@@ -33,7 +35,7 @@ import json
 import sys
 from pathlib import Path
 
-from motherlode.grading import build_grading_tool, rubric_hash as _rubric_hash
+from motherlode.grading import rubric_hash as _rubric_hash
 
 from . import tools as T
 from .rules import rulebook_text, rulebook_hash as current_rulebook_hash
@@ -220,7 +222,11 @@ def cmd_pool(a):
     print(f"pooled {len(manifest)} packets under {out}/pool (rubric {rubric_hash()})")
 
 
-def cmd_record(a):
+def cmd_score(a):
+    if getattr(a, "model", None):
+        return cmd_run(a)
+    if not a.scores:
+        sys.exit("score needs --scores '<json>' (a grader's output) or --model (an API judge)")
     if a.key:
         manifest = json.loads((Path(a.pool) / "manifest.json").read_text())
         if a.key not in manifest:
@@ -228,6 +234,8 @@ def cmd_record(a):
         a.run, a.index = manifest[a.key]["run"], manifest[a.key]["index"]
     trajs = load_run(a.run)
     t = trajs[a.index]
+    if not a.judge:
+        sys.exit("score needs --judge <name of the grader>")
     scores = parse_scores(a.scores)
     rec = {"run": a.run, "index": a.index, "task_id": t["task_id"], "team": t["team"],
            "model": t["model"], "judge": a.judge, "rubric_hash": rubric_hash(),
@@ -291,19 +299,22 @@ def _pool_items(pool: Path, keys: list[str] | None) -> list[dict]:
     return items
 
 
-def cmd_handpick(a):
+def cmd_items(a):
+    """Export the pool as motherlode items for one dimension. Ids are '<key>:<dimension>' so the
+    per-dimension grading tools, which share browser storage, cannot cross-contaminate."""
     pool = Path(a.pool)
     items = _pool_items(pool, a.keys)
-    out = Path(a.out)
-    out.mkdir(parents=True, exist_ok=True)
-    with (out / "items.jsonl").open("w") as f:
+    d = a.dimension
+    out = Path(a.out or f"grading/tools/items-{d}.jsonl")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    with out.open("w") as f:
         for it in items:
-            f.write(json.dumps(it) + "\n")
-    for d in a.dimensions:
-        build_grading_tool(items, rubric_text(), out / f"grade-{d}.html", labels=LABELS_FOR[d],
-                           context_keys=["packet"], hidden_keys=[f"judge_{d}"], rater=a.rater,
-                           title=f"Trade desk {d}: {DIM_TITLES[d]}", seed=a.seed)
-    print(f"{len(items)} items; grading tools for {', '.join(a.dimensions)} in {out} (rubric {rubric_hash()})")
+            f.write(json.dumps({"id": f"{it['id']}:{d}", "text": it["text"], "packet": it["packet"],
+                                "judge": it[f"judge_{d}"]}) + "\n")
+    labels = " ".join(LABELS_FOR[d])
+    print(f"{len(items)} items for {d} in {out} (rubric {rubric_hash()}). Build the tool with:\n"
+          f"  motherlode handpick --items {out} --rubric rubric/RUBRIC.md --out {out.parent}/grade-{d}.html "
+          f"--labels {labels} --context packet --hidden judge --rater <you> --title 'Trade desk {d}: {DIM_TITLES[d]}'")
 
 
 def cmd_labels(a):
@@ -324,7 +335,8 @@ def cmd_labels(a):
             key = back.get((j["run"], j["index"]))
             if key is None:
                 continue
-            rows.append({"item_id": key, "rater": j["judge"], "label": str(j["scores"][a.dimension]["score"]),
+            rows.append({"item_id": f"{key}:{a.dimension}", "rater": j["judge"],
+                         "label": str(j["scores"][a.dimension]["score"]),
                          "rubric_hash": j["rubric_hash"], "pass": "blind"})
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
     with Path(a.out).open("w") as f:
@@ -376,21 +388,22 @@ def main(argv=None):
     sub = p.add_subparsers(dest="cmd", required=True)
     s = sub.add_parser("packets"); s.add_argument("--run", required=True); s.add_argument("--out", required=True)
     s.set_defaults(fn=cmd_packets)
-    r = sub.add_parser("record"); r.add_argument("--run"); r.add_argument("--index", type=int)
+    r = sub.add_parser("score", aliases=["record"]); r.add_argument("--run"); r.add_argument("--index", type=int)
     r.add_argument("--key"); r.add_argument("--pool", default="runs/.judge")
-    r.add_argument("--judge", required=True); r.add_argument("--scores", required=True)
-    r.set_defaults(fn=cmd_record)
+    r.add_argument("--judge", default=None); r.add_argument("--scores", default=None)
+    r.add_argument("--model", default=None, help="grade with an API model instead of recording a grader's JSON")
+    r.set_defaults(fn=cmd_score)
     pl = sub.add_parser("pool"); pl.add_argument("--runs", nargs="+", required=True); pl.add_argument("--out", default="runs/.judge")
     pl.add_argument("--strict", action="store_true")
     pl.set_defaults(fn=cmd_pool)
     u = sub.add_parser("run"); u.add_argument("--run", required=True); u.add_argument("--model", default="claude-opus-5")
-    u.add_argument("--index", type=int, default=None); u.set_defaults(fn=cmd_run)
-    m = sub.add_parser("summary"); m.add_argument("runs", nargs="+"); m.add_argument("--strict", action="store_true")
+    u.add_argument("--index", type=int, default=None); u.set_defaults(fn=cmd_run)   # old name for score --model
+    m = sub.add_parser("report", aliases=["summary"]); m.add_argument("runs", nargs="+"); m.add_argument("--strict", action="store_true")
     m.set_defaults(fn=cmd_summary)
-    h = sub.add_parser("handpick"); h.add_argument("--pool", default="runs/.judge"); h.add_argument("--out", default="grading/tools")
-    h.add_argument("--rater", default="rater"); h.add_argument("--seed", type=int, default=0)
-    h.add_argument("--keys", nargs="*", default=None); h.add_argument("--dimensions", nargs="*", default=DIMENSIONS)
-    h.set_defaults(fn=cmd_handpick)
+    h = sub.add_parser("items", aliases=["handpick"]); h.add_argument("--pool", default="runs/.judge")
+    h.add_argument("--dimension", required=True, choices=DIMENSIONS); h.add_argument("--out", default=None)
+    h.add_argument("--keys", nargs="*", default=None)
+    h.set_defaults(fn=cmd_items)
     lb = sub.add_parser("labels"); lb.add_argument("--pool", default="runs/.judge"); lb.add_argument("--dimension", required=True, choices=DIMENSIONS)
     lb.add_argument("--out", default=None, help="default grading/labels/judge-<dimension>.jsonl"); lb.set_defaults(fn=cmd_labels)
     a = p.parse_args(argv)
