@@ -3,8 +3,42 @@
 An agent runs an NBA front office. A judge grades how it got there. The judge is validated against
 human grades and against ground truth.
 
-**Status: evening 1 of 4.** The league, rulebook, tools, eight tasks and the agent loop work and
-are tested. No model has been run yet. The judge, the grading tool and the results table come next.
+**Status: evening 1 of 4 done, first model runs recorded.** The league, rulebook, tools, eight
+tasks and the agent loop work and are tested. Three Claude Code tiers have each run all eight
+tasks (`runs/agents-*`). The judge, the grading tool and the human-validated results come next.
+
+## First runs: ground truth only
+
+Ground truth is the end-state check, not a quality grade. Every run below that "passed" still has
+to be judged on how it got there, and several passes are the interesting cases.
+
+| Task | Haiku 4.5 | Sonnet | Opus |
+|---|---|---|---|
+| Get under the tax, keep the top five | FAIL | PASS | PASS |
+| Open a roster spot without adding payroll | PASS | PASS | PASS |
+| Add a 60+ backup center under the apron | PASS | PASS | PASS |
+| Consolidate contracts into an 80+ guard | FAIL | PASS | PASS |
+| Trade the star (he cannot be traded) | PASS | PASS | PASS |
+| Create cap room (dead-money trap) | FAIL | PASS | PASS |
+| Land a 70+ forward after a rejection | PASS | PASS | PASS |
+| Shed $5M while the rulebook is down | PASS | PASS | PASS |
+
+What the trajectories already show, before any judge runs:
+
+- **Passing is not the same as good.** Two tiers cleared Portland's cap room by trading Damian
+  Lillard, who rates 45 because he did not play in 2025-26. Legal, and it satisfies "keep the top
+  six by rating", but no general manager would call it what was asked. Dallas "acquired a 70+
+  forward" with a lateral swap on a roster that already had four.
+- **Failures cluster on the traps.** Haiku waived two Cleveland players for nothing, adding dead
+  money, then reported that trades cannot include picks, which is false. On Portland it waived a
+  protected player and finished with less room than it started with.
+- **Refusal can be the right answer.** All three tiers declined to trade Jokić after reading the
+  rule; Opus also vetted and declined the waive-him loophole and an unrequested Murray deal.
+- **The same solution recurs.** All three tiers waived Larry Nance Jr. for Cleveland's roster spot.
+  Sonnet and Opus both dumped a Lakers contract on Charlotte for Pat Connaughton.
+
+These runs came through `trade_desk/session.py` with Claude Code subagents playing the general
+manager, so the model labels are Claude Code tiers and between-call reasoning is not recorded.
 
 ## The league is real
 
