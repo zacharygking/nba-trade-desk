@@ -2,8 +2,9 @@
 person at a terminal) can play the general manager. Every tool call is recorded exactly as in
 agent.run_task; only the assistant's between-call text is absent.
 
-  python -m trade_desk.session start  --task under_tax_keep_starters --model claude-code:sonnet --out runs/agents
-      prints the session id, the system prompt, the request and the tool reference
+  python -m trade_desk.session start  --task under_tax_keep_starters --model claude-code:sonnet --out runs/agents [--max-calls 30]
+      prints the session id, the system prompt, the request and the tool reference; calls past
+      the limit are refused with an error and the trajectory ends with reason "max_steps"
   python -m trade_desk.session call   --session <id> --tool view_roster --args '{"team": "LAL"}'
       executes one tool against the session state and prints the JSON result
   python -m trade_desk.session finish --session <id> --reply "what I did"
@@ -60,12 +61,14 @@ def cmd_start(a):
     sid = f"{a.task}-{secrets.token_hex(3)}"
     traj = Trajectory(task_id=task.id, task_version=task.version, model=a.model, seed=a.seed,
                       league=dict(sc.state.meta), team=sc.team, adjustments=list(sc.adjustments),
-                      rulebook_hash=rulebook_hash(), tools_hash=T.tools_hash(), request=sc.request,
+                      rulebook_hash=rulebook_hash(), tools_hash=T.tools_hash(), max_steps=a.max_calls,
+                      request=sc.request,
                       started_at=time.strftime("%Y-%m-%dT%H:%M:%S"))
     _save(sid, {"before": sc.state, "state": sc.state.clone(), "failures": task.failures(),
-                "traj": traj, "out": a.out, "i": 0})
+                "traj": traj, "out": a.out, "i": 0, "max_calls": a.max_calls, "over_limit": False})
     system = SYSTEM_PROMPT.format(team=sc.team, team_name=TEAMS[sc.team])
-    print(f"SESSION {sid}\nTEAM {sc.team}\n\n{system}\n\nREQUEST: {sc.request}\n\nTOOLS:\n{tool_reference()}")
+    print(f"SESSION {sid}\nTEAM {sc.team}\nCALL LIMIT {a.max_calls}\n\n{system}\n\nREQUEST: {sc.request}\n\n"
+          f"TOOLS:\n{tool_reference()}")
 
 
 def cmd_call(a):
@@ -80,7 +83,12 @@ def cmd_call(a):
     call_id = f"call_{i}"
     traj.steps.append({"i": i, "type": "assistant", "text": "", "stop_reason": "tool_use",
                        "tool_calls": [{"id": call_id, "name": a.tool, "input": args}]})
-    out = T.execute(s["state"], a.tool, args, s["failures"])
+    if i >= s.get("max_calls", 10**9):
+        s["over_limit"] = True
+        out = T.ToolOutcome({"error": f"call limit of {s['max_calls']} reached; finish the session now"},
+                            True, s["state"])
+    else:
+        out = T.execute(s["state"], a.tool, args, s["failures"])
     s["state"] = out.state
     traj.n_tool_calls += 1
     traj.n_tool_errors += int(out.is_error)
@@ -98,7 +106,7 @@ def cmd_finish(a):
     traj.steps.append({"i": s["i"], "type": "assistant", "text": a.reply, "tool_calls": [],
                        "stop_reason": "end_turn"})
     traj.final_reply = a.reply
-    traj.end_reason = "end_turn"
+    traj.end_reason = "max_steps" if s.get("over_limit") else "end_turn"
     task = TASKS_BY_ID[traj.task_id]
     traj.state_diff = s["before"].diff(s["state"])
     passed, why = task.check(s["before"], s["state"], traj.team)
@@ -121,6 +129,7 @@ def main(argv=None):
     s.add_argument("--task", required=True); s.add_argument("--model", required=True)
     s.add_argument("--out", default="runs/agents"); s.add_argument("--seed", type=int, default=7)
     s.add_argument("--league", default="espn", choices=["espn", "synthetic"])
+    s.add_argument("--max-calls", type=int, default=30)
     s.set_defaults(fn=cmd_start)
     c = sub.add_parser("call")
     c.add_argument("--session", required=True); c.add_argument("--tool", required=True)
