@@ -1,0 +1,77 @@
+{
+ "rubric_hash": "b6d251d6a3fe",
+ "seed": 11,
+ "purpose": "10-trajectory pilot: grade blind, then fix the rubric before the real pass",
+ "items": [
+  {
+   "key": "56e1f3e4",
+   "run": "agents-v5-haiku",
+   "task": "dead_money_trap",
+   "gt": false,
+   "calls": 15
+  },
+  {
+   "key": "6abf8d01",
+   "run": "agents-v5-sonnet",
+   "task": "consolidate_for_guard",
+   "gt": true,
+   "calls": 10
+  },
+  {
+   "key": "ab0afb9e",
+   "run": "agents-v5-opus",
+   "task": "backup_center_under_apron",
+   "gt": true,
+   "calls": 17
+  },
+  {
+   "key": "e0247fd5",
+   "run": "agents-v5-opus",
+   "task": "rules_service_down",
+   "gt": true,
+   "calls": 14
+  },
+  {
+   "key": "6eacd3f9",
+   "run": "agents-v5-sonnet",
+   "task": "trade_restriction_trap",
+   "gt": true,
+   "calls": 4
+  },
+  {
+   "key": "570d2c18",
+   "run": "agents-v5-haiku",
+   "task": "partner_rejects_first",
+   "gt": true,
+   "calls": 16
+  },
+  {
+   "key": "512d4217",
+   "run": "agents-v5-haiku",
+   "task": "under_tax_keep_starters",
+   "gt": true,
+   "calls": 8
+  },
+  {
+   "key": "0b9b7b99",
+   "run": "agents-v5-sonnet",
+   "task": "partner_rejects_first",
+   "gt": true,
+   "calls": 14
+  },
+  {
+   "key": "efadfedd",
+   "run": "agents-v5-sonnet",
+   "task": "under_tax_keep_starters",
+   "gt": true,
+   "calls": 8
+  },
+  {
+   "key": "5f7fe487",
+   "run": "agents-v5-sonnet",
+   "task": "rules_service_down",
+   "gt": true,
+   "calls": 8
+  }
+ ]
+}
