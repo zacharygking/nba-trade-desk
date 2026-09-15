@@ -15,6 +15,12 @@ it: no ground-truth result, no model label, no other run's scores.
       {"D1": {"score": 1, "rationale": "..."}, ..., "D6": {...}} with "NA" allowed on D4 and D5
   python -m trade_desk.judge summary runs/agents-v5-haiku runs/agents-v5-sonnet runs/agents-v5-opus
       judgments beside ground truth, per run and per dimension
+  python -m trade_desk.judge handpick --pool runs/.judge --out runs/handpick --rater zachary [--keys k1 k2 ...]
+      builds the human grading tools with motherlode: one blind, assisted HTML file per rubric
+      dimension over the pooled packets, the judge's score and rationale hidden until commit
+  python -m trade_desk.judge labels --pool runs/.judge --dimension D1 --out runs/handpick/judge-D1.jsonl
+      exports the recorded judgments for one dimension as motherlode label rows, keyed by pool key,
+      so `motherlode prospect --human labels-zachary-D1.jsonl --judge judge-D1.jsonl` runs per dimension
 
 An API judge (`judge run --model ...`) uses the same packet and parser through the Anthropic
 client; it is the same prompt either way.
@@ -22,10 +28,11 @@ client; it is the same prompt either way.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import sys
 from pathlib import Path
+
+from motherlode.grading import build_grading_tool, rubric_hash as _rubric_hash
 
 from . import tools as T
 from .rules import rulebook_text
@@ -41,7 +48,7 @@ def rubric_text() -> str:
 
 
 def rubric_hash() -> str:
-    return hashlib.sha256(rubric_text().encode()).hexdigest()[:12]
+    return _rubric_hash(rubric_text())
 
 
 def _compact(obj, limit: int = 2500) -> str:
@@ -209,6 +216,78 @@ def cmd_run(a):
         print(f"judged {t['task_id']} #{i}: " + " ".join(f"{d}={scores[d]['score']}" for d in DIMENSIONS))
 
 
+LABELS_FOR = {"D1": ["0", "1"], "D2": ["0", "1", "2"], "D3": ["0", "1", "2"],
+              "D4": ["0", "1", "2", "NA"], "D5": ["0", "1", "2", "NA"], "D6": ["0", "1", "2"]}
+DIM_TITLES = {"D1": "Task success", "D2": "Tool-call correctness", "D3": "Unnecessary calls",
+              "D4": "Irreversible moves without checking", "D5": "Recovery after an injected failure",
+              "D6": "Tool grounding"}
+
+
+def _pool_items(pool: Path, keys: list[str] | None) -> list[dict]:
+    """One item per pooled packet, with the recorded judgment (if any) as hidden fields."""
+    manifest = json.loads((pool / "manifest.json").read_text())
+    judged: dict[tuple[str, int], dict] = {}
+    for run in {m["run"] for m in manifest.values()}:
+        jp = Path(run) / "judgments.jsonl"
+        if jp.exists():
+            for l in jp.read_text().splitlines():
+                if l.strip():
+                    j = json.loads(l)
+                    judged[(j["run"], j["index"])] = j
+    items = []
+    for key, m in sorted(manifest.items()):
+        if keys and key not in keys:
+            continue
+        packet = (pool / "pool" / f"{key}.md").read_text()
+        head = packet.splitlines()[0].lstrip("# ").replace("Grading packet: ", "")
+        j = judged.get((m["run"], m["index"]))
+        item = {"id": key, "text": f"Trajectory {key}: {head}", "packet": packet}
+        for d in DIMENSIONS:
+            item[f"judge_{d}"] = (f"{j['scores'][d]['score']}: {j['scores'][d]['rationale']}" if j else "")
+        items.append(item)
+    return items
+
+
+def cmd_handpick(a):
+    pool = Path(a.pool)
+    items = _pool_items(pool, a.keys)
+    out = Path(a.out)
+    out.mkdir(parents=True, exist_ok=True)
+    with (out / "items.jsonl").open("w") as f:
+        for it in items:
+            f.write(json.dumps(it) + "\n")
+    for d in a.dimensions:
+        build_grading_tool(items, rubric_text(), out / f"grade-{d}.html", labels=LABELS_FOR[d],
+                           context_keys=["packet"], hidden_keys=[f"judge_{d}"], rater=a.rater,
+                           title=f"Trade desk {d}: {DIM_TITLES[d]}", seed=a.seed)
+    print(f"{len(items)} items; grading tools for {', '.join(a.dimensions)} in {out} (rubric {rubric_hash()})")
+
+
+def cmd_labels(a):
+    pool = Path(a.pool)
+    manifest = json.loads((pool / "manifest.json").read_text())
+    back = {(m["run"], m["index"]): key for key, m in manifest.items()}
+    rows = []
+    for run in sorted({m["run"] for m in manifest.values()}):
+        jp = Path(run) / "judgments.jsonl"
+        if not jp.exists():
+            continue
+        for l in jp.read_text().splitlines():
+            if not l.strip():
+                continue
+            j = json.loads(l)
+            key = back.get((j["run"], j["index"]))
+            if key is None:
+                continue
+            rows.append({"item_id": key, "rater": j["judge"], "label": str(j["scores"][a.dimension]["score"]),
+                         "rubric_hash": j["rubric_hash"], "pass": "blind"})
+    Path(a.out).parent.mkdir(parents=True, exist_ok=True)
+    with Path(a.out).open("w") as f:
+        for r in rows:
+            f.write(json.dumps(r) + "\n")
+    print(f"{len(rows)} judge labels for {a.dimension} written to {a.out}")
+
+
 def cmd_summary(a):
     rows = []
     for run in a.runs:
@@ -260,6 +339,12 @@ def main(argv=None):
     u = sub.add_parser("run"); u.add_argument("--run", required=True); u.add_argument("--model", default="claude-opus-5")
     u.add_argument("--index", type=int, default=None); u.set_defaults(fn=cmd_run)
     m = sub.add_parser("summary"); m.add_argument("runs", nargs="+"); m.set_defaults(fn=cmd_summary)
+    h = sub.add_parser("handpick"); h.add_argument("--pool", default="runs/.judge"); h.add_argument("--out", default="runs/handpick")
+    h.add_argument("--rater", default="rater"); h.add_argument("--seed", type=int, default=0)
+    h.add_argument("--keys", nargs="*", default=None); h.add_argument("--dimensions", nargs="*", default=DIMENSIONS)
+    h.set_defaults(fn=cmd_handpick)
+    lb = sub.add_parser("labels"); lb.add_argument("--pool", default="runs/.judge"); lb.add_argument("--dimension", required=True, choices=DIMENSIONS)
+    lb.add_argument("--out", required=True); lb.set_defaults(fn=cmd_labels)
     a = p.parse_args(argv)
     a.fn(a)
 

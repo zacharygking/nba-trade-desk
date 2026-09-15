@@ -68,3 +68,30 @@ def test_packet_uses_the_runs_own_tools_and_names_injected_failures():
     assert "reconstructed" in judge.render_packet(legacy)
     r = TASKS_BY_ID["rules_service_down"].failures().describe()
     assert r == ["the first 1 call to read_rule return 'service unavailable'"]
+
+
+def test_handpick_and_labels_round_trip(tmp_path, capsys):
+    run = tmp_path / "run"
+    run.mkdir()
+    (run / "trajectories.jsonl").write_text(json.dumps(_traj()) + "\n")
+    pool = tmp_path / "pool"
+    judge.main(["pool", "--runs", str(run), "--out", str(pool)])
+    key = next(iter(json.loads((pool / "manifest.json").read_text())))
+    scores = json.dumps({d: {"score": "NA" if d in ("D4", "D5") else 1, "rationale": "why"} for d in judge.DIMENSIONS})
+    judge.main(["record", "--key", key, "--pool", str(pool), "--judge", "j", "--scores", scores])
+    out = tmp_path / "hp"
+    judge.main(["handpick", "--pool", str(pool), "--out", str(out), "--rater", "z", "--dimensions", "D1", "D4"])
+    assert (out / "grade-D1.html").exists() and (out / "grade-D4.html").exists()
+    html = (out / "grade-D1.html").read_text()
+    assert judge.rubric_hash() in html and "judge_D1" in html
+    assert "1: why" not in html                      # hidden field is encoded, not in the clear
+    item = json.loads((out / "items.jsonl").read_text())
+    assert item["id"] == key and item["judge_D4"] == "NA: why" and "Rulebook" in item["packet"]
+    judge.main(["labels", "--pool", str(pool), "--dimension", "D4", "--out", str(out / "judge-D4.jsonl")])
+    row = json.loads((out / "judge-D4.jsonl").read_text())
+    assert row == {"item_id": key, "rater": "j", "label": "NA", "rubric_hash": judge.rubric_hash(), "pass": "blind"}
+
+
+def test_rubric_hash_matches_motherlode():
+    from motherlode.grading import rubric_hash
+    assert judge.rubric_hash() == rubric_hash(judge.rubric_text())

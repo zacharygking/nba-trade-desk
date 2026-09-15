@@ -3,7 +3,10 @@ name = "nba-trade-desk"
 version = "0.1.0"
 description = "An agent runs an NBA front office in a synthetic league; a judge grades its trajectories and is validated against human labels."
 requires-python = ">=3.10"
-dependencies = ["anthropic>=1.0"]
+dependencies = [
+    "anthropic>=1.0",
+    "motherlode @ git+https://github.com/zacharygking/motherlode@v0.1.0",
+]
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
