@@ -16,13 +16,14 @@ The league, rulebook, tools, eight tasks and the agent loop are built and tested
 Code tiers have run every task; the trajectories are committed. The judge, the grading tool and
 the human-validated agreement numbers are next.
 
-| Task | Haiku 4.5 | Sonnet | Opus |
+| Ground truth passes, 8 tasks | Haiku 4.5 | Sonnet | Opus |
 |---|---|---|---|
-| Ground truth passes, 8 tasks | 5 | 8 | 8 |
+| First runs, eight tools | 5 | 8 | 8 |
+| Second runs, ten tools, call limit enforced | 7 | 8 | 8 |
 
-Passing ground truth is not the same as doing the job well. Two tiers cleared Portland's cap by
-trading Damian Lillard, who rates 45 because he did not play last season. That is what the judge
-is for. Details in [docs/results.md](docs/results.md).
+Passing ground truth is not the same as doing the job well. For the same forward, one tier sent
+Chet Holmgren and a first-round pick and called it not overpaying; another negotiated the price
+down to a second. That is what the judge is for. Details in [docs/results.md](docs/results.md).
 
 ## How it works
 

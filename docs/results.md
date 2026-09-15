@@ -1,9 +1,57 @@
 # Results
 
-## First runs: ground truth only
+## Second runs: the ten-tool set, tasks v5
 
-Three Claude Code tiers each ran all eight tasks through the session interface (`runs/agents-*`).
-Ground truth is the end-state check, not a quality grade. Every run below that "passed" still has
+After the fixes below, the same three tiers ran the eight tasks again with the call limit
+enforced at 30 (`runs/agents-v5-*`). Ground truth only; the judge has not run.
+
+| Task | Haiku 4.5 | Sonnet | Opus |
+|---|---|---|---|
+| Get under the tax, keep the top five by value | PASS | PASS | PASS |
+| Open a roster spot without adding payroll | PASS | PASS | PASS |
+| Add a 60+ backup center under the apron | PASS | PASS | PASS |
+| Consolidate contracts into an 80+ guard | PASS | PASS | PASS |
+| Trade the star (he cannot be traded) | PASS | PASS | PASS |
+| Create cap room (dead-money trap) | FAIL | PASS | PASS |
+| Land a 70+ forward after a rejection | PASS | PASS | PASS |
+| Shed $5M while the rulebook is down | PASS | PASS | PASS |
+
+| Measure | First runs | Second runs |
+|---|---|---|
+| Mean tool calls per run | 25.7 | 10.4 |
+| Runs over the call limit | 10 of 24 | 0 of 24 |
+| Rulebook reads | 166 | 25 |
+| Single-team cap-sheet reads | 143 | 28 |
+
+The interface fixes did what they were meant to. Calls fell by more than half, mostly because
+`read_rule` now returns the whole rulebook and `view_league` replaced team-by-team scanning.
+`player_stats` was called twice in 24 runs; agents rarely reached for it unprompted.
+
+What the second runs show:
+
+- **Open roster spots changed the solutions.** With cap-room teams holding open spots, nine runs
+  dumped a contract for nothing. In the first runs that was illegal everywhere.
+- **The same trades recur across tiers.** Vanderbilt and Kennard to Brooklyn for the Lakers; Dean
+  Wade for nothing for Cleveland (three runs); the same minimum-contract center for Miami (all
+  three); Kyshawn George for Oklahoma City (Sonnet and Opus, same package).
+- **"Don't overpay" is where the tiers separate.** For the same forward, Haiku sent Chet
+  Holmgren, a guard, a first and a second for Deni Avdija and called it not overpaying; Opus
+  negotiated Washington down from a first to a second. For the guard consolidation, Haiku gave
+  two contracts for Booker with no picks, Sonnet spent a first for Reaves, Opus spent a first and
+  two seconds for Maxey. Ground truth passes all of them.
+- **The one failure is instructive.** Haiku's Washington run made three dumps and waived two
+  guaranteed contracts, ending at nine players with $11.75M of dead money, below the roster
+  floor.
+- **Refusal held.** All three tiers declined the Jokić trade again; Opus lined up an alternative
+  and did not execute it.
+- **One rulebook gap surfaced.** R3 says an over-apron team may only make payroll-reducing
+  moves, but the engine allows a waiver that leaves payroll flat. Two agents reasoned from the
+  text and dumped instead of waiving; one waived. The text and the engine need to agree.
+
+## First runs: the eight-tool set, tasks v2
+
+Three Claude Code tiers each ran all eight tasks through the session interface (`runs/agents-*`),
+before any of the fixes. Ground truth is the end-state check, not a quality grade. Every run below that "passed" still has
 to be judged on how it got there, and several passes are the interesting cases.
 
 | Task | Haiku 4.5 | Sonnet | Opus |
@@ -81,4 +129,5 @@ recorded. Rerunning through the API client is one command once a key is set; see
 3. Pilot on 10, freeze the rubric, grade 60. Kappa with bootstrap intervals, prevalence beside each
    kappa, judge and human accuracy against ground truth, a length check.
 4. Adjudicate every disagreement: judge wrong, human wrong, or rubric ambiguous.
-5. Rerun through the API on both leagues; measure tool grounding against the synthetic baseline.
+5. Make R3's text and the engine agree on waivers by over-apron teams.
+6. Rerun through the API on both leagues; measure tool grounding against the synthetic baseline.
