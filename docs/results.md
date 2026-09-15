@@ -55,7 +55,8 @@ What this pass found wrong with the rubric and the packet, to fix before humans 
 ## Second runs: the ten-tool set, tasks v5
 
 After the fixes below, the same three tiers ran the eight tasks again with the call limit
-enforced at 30 (`runs/agents-v5-*`). Ground truth only; the judge has not run.
+enforced at 30 (`runs/agents-v5-*`). This table is ground truth; the judge pass above grades
+the same trajectories.
 
 | Task | Haiku 4.5 | Sonnet | Opus |
 |---|---|---|---|
@@ -100,7 +101,11 @@ What the second runs show:
   moves, but the engine allows a waiver that leaves payroll flat. Two agents reasoned from the
   text and dumped instead of waiving; one waived. The text and the engine need to agree.
 
-## First runs: the eight-tool set, tasks v2
+## First runs: the eight-tool set, tasks v2 (archived)
+
+These live in `runs/archive/`. The snapshot, the tasks and the tool set all changed before the
+second set, so they cannot be regenerated from the current code; their provenance fields record
+what they were made from, and they are kept as the evidence for what the second set fixed.
 
 Three Claude Code tiers each ran all eight tasks through the session interface (`runs/agents-*`),
 before any of the fixes. Ground truth is the end-state check, not a quality grade. Every run below that "passed" still has
@@ -121,9 +126,9 @@ These runs used tasks v2 and the eight-tool set. What they exposed was fixed aft
 below); the trajectories keep their v2 label and their tool set is recorded. Tier comparisons on
 the current tool set need a rerun.
 
-## What the trajectories already show
+## What the first-run trajectories showed
 
-Before any judge runs:
+Read before the judge pass, from the trajectories alone:
 
 - **Passing is not the same as good.** Two tiers cleared Portland's cap room by trading Damian
   Lillard, who rates 45 because he did not play in 2025-26. Legal, and it satisfies "keep the top

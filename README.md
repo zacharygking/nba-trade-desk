@@ -21,7 +21,7 @@ the human-validated agreement numbers are next.
 
 | Ground truth passes, 8 tasks | Haiku 4.5 | Sonnet | Opus |
 |---|---|---|---|
-| First runs, eight tools | 5 | 8 | 8 |
+| First runs, eight tools (archived, not replayable) | 5 | 8 | 8 |
 | Second runs, ten tools, call limit enforced | 7 | 8 | 8 |
 
 Passing ground truth is not the same as doing the job well. For the same forward, one tier sent
@@ -33,7 +33,7 @@ down to a second. That is what the judge is for. Details in [docs/results.md](do
 - **The league is real.** Rosters, contracts and cap lines from ESPN's public API, with one
   derived rating and every inference flagged. A synthetic league of invented players runs on the
   same engine as the tool-grounding baseline. [docs/league.md](docs/league.md)
-- **Ten rules, eight tools, eight tasks.** The rulebook is the only authority; real NBA rules do
+- **Ten rules, ten tools, eight tasks.** The rulebook is the only authority; real NBA rules do
   not apply. Each task finds the real team whose books fit its scenario and has a checkable end
   state. Two tasks inject failures. [docs/tasks.md](docs/tasks.md)
 - **Six grading dimensions.** Task success, tool-call correctness, unnecessary calls, irreversible
@@ -48,8 +48,8 @@ down to a second. That is what the judge is for. Details in [docs/results.md](do
 ```
 uv venv --python 3.12 .venv && uv pip install -e ".[dev]"
 .venv/bin/python -m pytest -q
-.venv/bin/python -m trade_desk.run show under_tax_keep_starters
-.venv/bin/python -m trade_desk.run run --model claude-opus-5 --tasks all --out runs/opus5
+.venv/bin/nba-trade-desk run show under_tax_keep_starters
+.venv/bin/nba-trade-desk run run --model claude-opus-5 --tasks all --out runs/opus5
 ```
 
 ## Documents
@@ -60,6 +60,6 @@ uv venv --python 3.12 .venv && uv pip install -e ".[dev]"
 | [docs/tasks.md](docs/tasks.md) | Tools, tasks and their traps, the trajectory record |
 | [docs/running.md](docs/running.md) | Setup, CLI, outside-agent sessions, repo layout |
 | [docs/results.md](docs/results.md) | Both run sets, the judge pass, what is next |
-| [docs/motherlode-proposal.md](docs/motherlode-proposal.md) | What the shared grading library needs to fit a six-dimension rubric |
+| [docs/motherlode-proposal.md](docs/motherlode-proposal.md) | Proposal for the shared data library: multi-dimension rubrics and the division of labor |
 | [rulebook/RULEBOOK.md](rulebook/RULEBOOK.md) | The rulebook the agent and the grader read |
 | [rubric/RUBRIC.md](rubric/RUBRIC.md) | The grading rubric |

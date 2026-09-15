@@ -45,24 +45,42 @@ Two differences from the API path, both stated in the trajectory's model label
 (`claude-code:<tier>`): the agent's reasoning between calls is not captured, only its calls and
 final reply; and the agent is instructed, not prevented, from reading the repository.
 
-## Grade by hand and validate the judge
+## Judge the trajectories
 
 ```
 .venv/bin/python -m trade_desk.judge pool --runs runs/agents-v5-haiku runs/agents-v5-sonnet runs/agents-v5-opus --out runs/.judge
-.venv/bin/python -m trade_desk.judge handpick --pool runs/.judge --out runs/handpick --rater zachary
-open runs/handpick/grade-D1.html            # one blind, assisted tool per dimension; export labels when done
-.venv/bin/python -m trade_desk.judge labels --pool runs/.judge --dimension D1 --out runs/handpick/judge-D1.jsonl
-.venv/bin/motherlode prospect --human runs/handpick/labels-zachary-D1.jsonl --judge runs/handpick/judge-D1.jsonl
+.venv/bin/python -m trade_desk.judge score --key <key> --judge <grader name> --scores '<json>'     # a grader's output
+.venv/bin/python -m trade_desk.judge score --run runs/agents-v5-opus --model claude-opus-5           # an API judge
+.venv/bin/python -m trade_desk.judge report runs/agents-v5-haiku runs/agents-v5-sonnet runs/agents-v5-opus
 ```
 
-The grading tools and the validation come from [motherlode](https://github.com/zacharygking/motherlode),
-pinned by tag in `pyproject.toml`. One tool per dimension is the interim until motherlode grades a
-multi-dimension rubric in one pass; see `docs/motherlode-proposal.md`.
+`pool` writes one blind packet per trajectory under an opaque key. A packet carries the run's own
+rulebook and tool set, the request, the injected failures, every call and result, the final reply
+and the state diff, and withholds ground truth and the model. `report` prints a DRIFT line for
+every mismatch between a run's recorded rulebook, tools or rubric hash and the current code, and
+refuses under `--strict`.
+
+## Grade by hand and validate the judge
+
+```
+.venv/bin/python -m trade_desk.judge items --dimension D1                 # grading/tools/items-D1.jsonl
+.venv/bin/motherlode handpick --items grading/tools/items-D1.jsonl --rubric rubric/RUBRIC.md \
+  --out grading/tools/grade-D1.html --labels 0 1 --context packet --hidden judge --rater <you> --title "Trade desk D1"
+open grading/tools/grade-D1.html                                          # label blind; export when done
+.venv/bin/python -m trade_desk.judge labels --dimension D1                # grading/labels/judge-D1.jsonl
+.venv/bin/motherlode prospect --human grading/labels/labels-<you>-D1.jsonl --judge grading/labels/judge-D1.jsonl
+```
+
+The grading tool and the validation come from [motherlode](https://github.com/zacharygking/motherlode),
+pinned by tag in `pyproject.toml`. `items` prints the exact `handpick` command for the dimension.
+One tool per dimension is the interim until motherlode grades a multi-dimension rubric in one
+pass; see `docs/motherlode-proposal.md`. Human label files belong in `grading/labels/`, which is
+tracked.
 
 ## Compare runs
 
 ```
-.venv/bin/python -m trade_desk.report runs/agents-haiku runs/agents-sonnet runs/agents-opus --stories
+.venv/bin/python -m trade_desk.report runs/agents-v5-haiku runs/agents-v5-sonnet runs/agents-v5-opus --stories
 ```
 
 One table per model, then a by-task grid. `--stories` spells out each run's transactions.
@@ -73,14 +91,17 @@ One table per model, then a by-task grid. `--stories` spells out each run's tran
 |---|---|
 | `trade_desk/league.py` | Loads the ESPN snapshot into league state; builds the synthetic league. |
 | `trade_desk/rules.py` | The ten-rule rulebook and its validators. |
-| `trade_desk/tools.py` | Eight tools with JSON schemas, the partner-acceptance model, failure injection. |
+| `trade_desk/tools.py` | Ten tools with JSON schemas, the partner-acceptance model, failure injection. |
 | `trade_desk/tasks.py` | Eight tasks with scenario selection and end-state checks. |
 | `trade_desk/agent.py` | The agent loop, the client interface, the Anthropic and scripted clients, the trajectory record. |
 | `trade_desk/session.py` | Shell-driven sessions for outside agents. |
 | `trade_desk/report.py` | Results tables. |
+| `trade_desk/judge.py` | Packets, the anonymized pool, score recording, the judge report, exports for motherlode. |
+| `trade_desk/cli.py` | The `nba-trade-desk` console script, dispatching to run, judge, session and report. |
 | `trade_desk/run.py` | CLI. |
 | `data/` | The ESPN snapshot and the script that made it. |
 | `rulebook/RULEBOOK.md` | The rulebook as the grader reads it. Generated from `rules.py`. |
 | `rubric/RUBRIC.md` | Grading rubric, six dimensions. |
-| `runs/` | Trajectories as JSONL, committed so every number is reproducible. |
+| `runs/` | Trajectories and judgments as JSONL, committed. `runs/archive/` holds the first set, which is not replayable. |
+| `grading/` | Human and judge label rows (tracked) and the generated grading tools (ignored). |
 | `tests/` | Rule validators, scenario preconditions on both leagues, scripted end-to-end runs. |

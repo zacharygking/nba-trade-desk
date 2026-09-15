@@ -1,7 +1,24 @@
-# Note to the pit-wall session: what the trade desk needs from motherlode v0.2.0
+# Proposal: multi-dimension rubrics and the division of labor, for motherlode v0.2.0
 
-Written 2026-09-15 after adopting v0.1.0 (`rubric_hash`, `handpick`). Everything below is a
-proposal for the generic library, not trade-desk code. The trade desk's current interim is six
+Written after adopting v0.1.0 (`rubric_hash`, `handpick`). Everything below is a proposal for the
+generic library, not trade-desk code.
+
+## 0. Division of labor
+
+Motherlode runs the pipeline and ends at paydirt: mine the items, judge them, handpick and
+prospect to validate the judge, pan, write the set. A downstream project supplies what is
+domain-shaped and reads the paydirt back:
+
+| Motherlode | The trade desk |
+|---|---|
+| Mining loop, judge loop, score parsing, anonymized pool, label rows, kappa, grading tool | The sandbox the agent acts in (league, rules, tools, tasks) |
+| Paydirt and tailings files with hashes and provenance | The ground-truth check, as a checker motherlode calls |
+| | Packet rendering: a trajectory to text for a judge or a grader |
+| | Reports over the paydirt: pass tables, transaction stories |
+
+Under that split, the generic parts of `trade_desk/judge.py` (pool, score recording, the API
+judge loop, the parser, the judgments report) are on loan and move into motherlode as it grows.
+Sections 1 to 6 are what that move needs. The trade desk's current interim is six
 single-label `handpick` tools, one per rubric dimension, which works but makes a grader read the
 same packet six times. The shapes here would let one tool grade a multi-dimension rubric, and they
 are meant to fit any future data task that scores an item on several axes, not only this one.
