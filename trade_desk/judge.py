@@ -6,8 +6,12 @@ it: no ground-truth result, no model label, no other run's scores.
 
   python -m trade_desk.judge packets --run runs/agents-v5-opus --out runs/agents-v5-opus/packets
       writes one Markdown packet per trajectory (packet-<index>.md) plus the rubric
+  python -m trade_desk.judge pool --runs runs/agents-v5-haiku runs/agents-v5-sonnet ... --out runs/.judge
+      writes every packet under a random key (pool/<key>.md) plus manifest.json, so a grader
+      cannot tell which model or run it is grading from the path
   python -m trade_desk.judge record --run runs/agents-v5-opus --index 3 --judge claude-code:opus --scores '<json>'
-      appends one judgment to runs/agents-v5-opus/judgments.jsonl; scores is
+  python -m trade_desk.judge record --key <key> --pool runs/.judge --judge claude-code:opus --scores '<json>'
+      appends one judgment to <run>/judgments.jsonl; scores is
       {"D1": {"score": 1, "rationale": "..."}, ..., "D6": {...}} with "NA" allowed on D4 and D5
   python -m trade_desk.judge summary runs/agents-v5-haiku runs/agents-v5-sonnet runs/agents-v5-opus
       judgments beside ground truth, per run and per dimension
@@ -146,7 +150,28 @@ def cmd_packets(a):
     print(f"wrote {len(trajs)} packets to {out} (rubric {rubric_hash()})")
 
 
+def cmd_pool(a):
+    import secrets
+    out = Path(a.out)
+    (out / "pool").mkdir(parents=True, exist_ok=True)
+    (out / "RUBRIC.md").write_text(rubric_text())
+    (out / "INSTRUCTIONS.md").write_text(JUDGE_INSTRUCTIONS + "\n")
+    manifest = {}
+    for run in a.runs:
+        for i, t in enumerate(load_run(run)):
+            key = secrets.token_hex(4)
+            (out / "pool" / f"{key}.md").write_text(render_packet(t))
+            manifest[key] = {"run": run, "index": i}
+    (out / "manifest.json").write_text(json.dumps(manifest, indent=1))
+    print(f"pooled {len(manifest)} packets under {out}/pool (rubric {rubric_hash()})")
+
+
 def cmd_record(a):
+    if a.key:
+        manifest = json.loads((Path(a.pool) / "manifest.json").read_text())
+        if a.key not in manifest:
+            sys.exit(f"unknown key {a.key}")
+        a.run, a.index = manifest[a.key]["run"], manifest[a.key]["index"]
     trajs = load_run(a.run)
     t = trajs[a.index]
     scores = parse_scores(a.scores)
@@ -222,9 +247,12 @@ def main(argv=None):
     sub = p.add_subparsers(dest="cmd", required=True)
     s = sub.add_parser("packets"); s.add_argument("--run", required=True); s.add_argument("--out", required=True)
     s.set_defaults(fn=cmd_packets)
-    r = sub.add_parser("record"); r.add_argument("--run", required=True); r.add_argument("--index", type=int, required=True)
+    r = sub.add_parser("record"); r.add_argument("--run"); r.add_argument("--index", type=int)
+    r.add_argument("--key"); r.add_argument("--pool", default="runs/.judge")
     r.add_argument("--judge", required=True); r.add_argument("--scores", required=True)
     r.set_defaults(fn=cmd_record)
+    pl = sub.add_parser("pool"); pl.add_argument("--runs", nargs="+", required=True); pl.add_argument("--out", default="runs/.judge")
+    pl.set_defaults(fn=cmd_pool)
     u = sub.add_parser("run"); u.add_argument("--run", required=True); u.add_argument("--model", default="claude-opus-5")
     u.add_argument("--index", type=int, default=None); u.set_defaults(fn=cmd_run)
     m = sub.add_parser("summary"); m.add_argument("runs", nargs="+"); m.set_defaults(fn=cmd_summary)

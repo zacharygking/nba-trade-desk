@@ -8,3 +8,4 @@ runs/*/scratch/
 runs/.sessions/
 data/fetch.log
 runs/*/packets/
+runs/.judge/
