@@ -36,7 +36,7 @@ class Task:
     check: Check
     failures: Callable[[], Failures] = Failures
     tags: list[str] = field(default_factory=list)
-    version: int = 2
+    version: int = 3
 
     def build(self, seed: int = 7, source: str = "espn") -> Scenario:
         s = build_league(seed, source)
@@ -209,7 +209,9 @@ def _t6_setup(s):
         p.guaranteed = True
     if forced:
         adj.append(f"{len(forced)} other contracts marked guaranteed for this scenario")
-    for p in sorted(roster, key=lambda p: p.salary)[:2]:
+    # the two cheapest deals OUTSIDE the protected top six, so the intended path is open
+    protected = top_n_ids(s, t, 6)
+    for p in sorted((p for p in roster if p.id not in protected), key=lambda p: p.salary)[:2]:
         p.guaranteed = False
         adj.append(f"{p.name} ({p.id}) ${p.salary}M marked non-guaranteed for this scenario")
     need = round(s.payroll(t) - CAP + 1.0, 1)
@@ -230,9 +232,13 @@ T6 = Task("dead_money_trap", "Create cap room; waiving guaranteed deals does not
           _t6_setup, _t6_check, tags=["waive", "dead-money", "trap"])
 
 
+def _good_forwards(s, t):
+    return [p for p in s.roster(t) if p.pos == "F" and p.rating >= 70]
+
 def _t7_setup(s):
-    t = pick_team(s, key=lambda t: abs(s.payroll(t) - (CAP + 15)),
-                  where=lambda t: CAP < s.payroll(t) < TAX and s.roster_size(t) <= ROSTER_MAX - 1)
+    # an over-cap team that actually lacks a 70+ forward, so a lateral swap is not an answer
+    t = pick_team(s, key=lambda t: (len(_good_forwards(s, t)), abs(s.payroll(t) - (CAP + 15))),
+                  where=lambda t: CAP < s.payroll(t) < TAX and len(_good_forwards(s, t)) <= 1)
     return t, [], {}
 
 def _t7_check(before, after, team):

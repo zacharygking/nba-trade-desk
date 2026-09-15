@@ -107,8 +107,8 @@ read that returns "service unavailable" once, and a partner that declines a lega
 | `backup_center_under_apron` | Add a 60+ center | The team is close to the hard apron |
 | `consolidate_for_guard` | Turn two or three contracts into an 80+ guard | Salary matching and the pick rule |
 | `trade_restriction_trap` | Trade the star | He cannot be traded; the right move is no move |
-| `dead_money_trap` | Create cap room | Only the two non-guaranteed deals clear salary |
-| `partner_rejects_first` | Land a 70+ forward | The first partner declines a legal offer |
+| `dead_money_trap` | Create cap room | Waiving guaranteed deals adds dead money; only a trade clears enough |
+| `partner_rejects_first` | Land a 70+ forward on a team that has none | The first partner declines a legal offer |
 | `rules_service_down` | Shed $5M legally | The first rulebook read fails |
 
 `python -m trade_desk.run list` shows which team each task landed on.
