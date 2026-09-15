@@ -28,6 +28,7 @@ client; it is the same prompt either way.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -195,8 +196,14 @@ def cmd_packets(a):
     print(f"wrote {len(trajs)} packets to {out} (rubric {rubric_hash()})")
 
 
+def pool_key(run: str, index: int, traj: dict) -> str:
+    """Deterministic, opaque key for a trajectory: stable across re-pools so label rows keyed
+    by it can always be joined back, and unreadable so a grader cannot tell the run from it."""
+    ident = f"{Path(run).name}|{index}|{traj['task_id']}|{traj.get('started_at', '')}"
+    return hashlib.sha256(ident.encode()).hexdigest()[:8]
+
+
 def cmd_pool(a):
-    import secrets
     warn_drift(a.runs, getattr(a, "strict", False))
     out = Path(a.out)
     (out / "pool").mkdir(parents=True, exist_ok=True)
@@ -205,7 +212,8 @@ def cmd_pool(a):
     manifest = {}
     for run in a.runs:
         for i, t in enumerate(load_run(run)):
-            key = secrets.token_hex(4)
+            key = pool_key(run, i, t)
+            assert key not in manifest, f"key collision for {run} #{i}"
             (out / "pool" / f"{key}.md").write_text(render_packet(t))
             manifest[key] = {"run": run, "index": i}
     (out / "manifest.json").write_text(json.dumps(manifest, indent=1))
@@ -299,6 +307,8 @@ def cmd_handpick(a):
 
 
 def cmd_labels(a):
+    if a.out is None:
+        a.out = f"grading/labels/judge-{a.dimension}.jsonl"
     pool = Path(a.pool)
     manifest = json.loads((pool / "manifest.json").read_text())
     back = {(m["run"], m["index"]): key for key, m in manifest.items()}
@@ -377,12 +387,12 @@ def main(argv=None):
     u.add_argument("--index", type=int, default=None); u.set_defaults(fn=cmd_run)
     m = sub.add_parser("summary"); m.add_argument("runs", nargs="+"); m.add_argument("--strict", action="store_true")
     m.set_defaults(fn=cmd_summary)
-    h = sub.add_parser("handpick"); h.add_argument("--pool", default="runs/.judge"); h.add_argument("--out", default="runs/handpick")
+    h = sub.add_parser("handpick"); h.add_argument("--pool", default="runs/.judge"); h.add_argument("--out", default="grading/tools")
     h.add_argument("--rater", default="rater"); h.add_argument("--seed", type=int, default=0)
     h.add_argument("--keys", nargs="*", default=None); h.add_argument("--dimensions", nargs="*", default=DIMENSIONS)
     h.set_defaults(fn=cmd_handpick)
     lb = sub.add_parser("labels"); lb.add_argument("--pool", default="runs/.judge"); lb.add_argument("--dimension", required=True, choices=DIMENSIONS)
-    lb.add_argument("--out", required=True); lb.set_defaults(fn=cmd_labels)
+    lb.add_argument("--out", default=None, help="default grading/labels/judge-<dimension>.jsonl"); lb.set_defaults(fn=cmd_labels)
     a = p.parse_args(argv)
     a.fn(a)
 

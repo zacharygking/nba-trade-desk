@@ -9,4 +9,4 @@ runs/.sessions/
 data/fetch.log
 runs/*/packets/
 runs/.judge/
-runs/handpick/
+grading/tools/

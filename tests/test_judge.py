@@ -105,3 +105,19 @@ def test_packet_uses_the_runs_own_rulebook_and_drift_is_reported(capsys):
     assert "OLD RULEBOOK TEXT" in judge.render_packet(stale)
     assert any(d.startswith("rulebook deadbeef0000") for d in judge.drift(stale))
     assert judge.drift(t, {"rubric_hash": "nope"}) == [f"rubric nope (judgment) vs {judge.rubric_hash()} (now)"]
+
+
+def test_pool_keys_are_deterministic_and_opaque(tmp_path):
+    run = tmp_path / "agents-x"
+    run.mkdir()
+    t = _traj()
+    (run / "trajectories.jsonl").write_text(json.dumps(t) + "\n")
+    a = judge.pool_key(str(run), 0, t)
+    b = judge.pool_key(str(tmp_path / "other" / "agents-x"), 0, t)   # same run name elsewhere
+    assert a == b and len(a) == 8 and "agents" not in a
+    assert judge.pool_key(str(run), 1, t) != a
+    for out in ("p1", "p2"):
+        judge.main(["pool", "--runs", str(run), "--out", str(tmp_path / out)])
+    m1 = json.loads((tmp_path / "p1" / "manifest.json").read_text())
+    m2 = json.loads((tmp_path / "p2" / "manifest.json").read_text())
+    assert list(m1) == list(m2) == [a]
