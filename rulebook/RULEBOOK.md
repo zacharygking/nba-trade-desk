@@ -21,5 +21,3 @@ This rulebook is the only authority in this league. Real NBA rules do not apply.
 **R9. Draft picks.** Draft picks may be traded. A team may not trade away its own first-round picks for two consecutive years; it must keep at least one of them.
 
 **R10. Trade structure.** A trade involves exactly two teams. Every asset a team sends must be owned by that team at the time of the trade. Executed trades are final.
-
-<!-- rulebook hash 405b70dd6945 -->

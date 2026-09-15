@@ -95,3 +95,13 @@ def test_handpick_and_labels_round_trip(tmp_path, capsys):
 def test_rubric_hash_matches_motherlode():
     from motherlode.grading import rubric_hash
     assert judge.rubric_hash() == rubric_hash(judge.rubric_text())
+
+
+def test_packet_uses_the_runs_own_rulebook_and_drift_is_reported(capsys):
+    t = _traj()
+    assert t["rulebook"] and "R3" in t["rulebook"]
+    assert judge.drift(t) == []
+    stale = dict(t, rulebook="OLD RULEBOOK TEXT", rulebook_hash="deadbeef0000")
+    assert "OLD RULEBOOK TEXT" in judge.render_packet(stale)
+    assert any(d.startswith("rulebook deadbeef0000") for d in judge.drift(stale))
+    assert judge.drift(t, {"rubric_hash": "nope"}) == [f"rubric nope (judgment) vs {judge.rubric_hash()} (now)"]

@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from typing import Protocol
 
 from . import tools as T
-from .rules import rulebook_hash
+from .rules import rulebook_hash, rulebook_text
 from .tools import tools_hash, tool_descriptions
 from .state import LeagueState
 from .tasks import Task
@@ -137,6 +137,7 @@ class Trajectory:
     started_at: str
     tools: list[dict] = field(default_factory=list)          # the tool set this run had
     injected_failures: list[str] = field(default_factory=list)
+    rulebook: str = ""                                       # the rulebook text this run had
     steps: list[dict] = field(default_factory=list)
     final_reply: str = ""
     end_reason: str = ""
@@ -162,7 +163,8 @@ def run_task(task: Task, client: Client, seed: int = 7, source: str = "espn",
                       rulebook_hash=rulebook_hash(), tools_hash=tools_hash(), max_steps=max_steps,
                       request=sc.request,
                       started_at=time.strftime("%Y-%m-%dT%H:%M:%S"),
-                      tools=tool_descriptions(), injected_failures=failures.describe())
+                      tools=tool_descriptions(), injected_failures=failures.describe(),
+                      rulebook=rulebook_text())
     client.start(SYSTEM_PROMPT.format(team=sc.team, team_name=TEAMS[sc.team]), sc.request)
 
     for i in range(max_steps):

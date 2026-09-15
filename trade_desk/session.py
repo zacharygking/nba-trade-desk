@@ -24,7 +24,7 @@ from pathlib import Path
 from . import tools as T
 from .agent import SYSTEM_PROMPT, Trajectory
 from .league import TEAMS
-from .rules import rulebook_hash
+from .rules import rulebook_hash, rulebook_text
 from .tasks import TASKS_BY_ID
 
 SESSIONS = Path("runs") / ".sessions"
@@ -66,7 +66,8 @@ def cmd_start(a):
                       rulebook_hash=rulebook_hash(), tools_hash=T.tools_hash(), max_steps=a.max_calls,
                       request=sc.request,
                       started_at=time.strftime("%Y-%m-%dT%H:%M:%S"),
-                      tools=T.tool_descriptions(), injected_failures=failures.describe())
+                      tools=T.tool_descriptions(), injected_failures=failures.describe(),
+                      rulebook=rulebook_text())
     _save(sid, {"before": sc.state, "state": sc.state.clone(), "failures": failures,
                 "traj": traj, "out": a.out, "i": 0, "max_calls": a.max_calls, "over_limit": False})
     system = SYSTEM_PROMPT.format(team=sc.team, team_name=TEAMS[sc.team])

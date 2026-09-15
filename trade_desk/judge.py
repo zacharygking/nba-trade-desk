@@ -35,7 +35,7 @@ from pathlib import Path
 from motherlode.grading import build_grading_tool, rubric_hash as _rubric_hash
 
 from . import tools as T
-from .rules import rulebook_text
+from .rules import rulebook_text, rulebook_hash as current_rulebook_hash
 
 RUBRIC_PATH = Path(__file__).resolve().parent.parent / "rubric" / "RUBRIC.md"
 DIMENSIONS = ["D1", "D2", "D3", "D4", "D5", "D6"]
@@ -93,7 +93,7 @@ def render_packet(traj: dict) -> str:
 {injected}
 
 ## Rulebook (the only authority; real NBA rules do not apply)
-{rulebook_text()}
+{traj.get("rulebook") or rulebook_text() + "\n(rulebook reconstructed from the current text; this run predates per-run rulebook records)"}
 
 ## Tools the agent had
 {tool_reference(traj)}
@@ -125,6 +125,40 @@ Answer with one JSON object and nothing else:
 def load_run(run: str) -> list[dict]:
     p = Path(run) / "trajectories.jsonl"
     return [json.loads(l) for l in p.read_text().splitlines() if l.strip()]
+
+
+def drift(traj: dict, judgment: dict | None = None) -> list[str]:
+    """What differs between the artifacts a run was made with and the code as it is now.
+    Packets are rendered from the run's own rulebook and tools, so drift is a warning for
+    anyone comparing across runs, and an error for anyone about to mix labels across it."""
+    out = []
+    if traj.get("rulebook_hash") != current_rulebook_hash():
+        out.append(f"rulebook {traj.get('rulebook_hash')} (run) vs {current_rulebook_hash()} (now)")
+    if traj.get("tools_hash") != T.tools_hash():
+        out.append(f"tools {traj.get('tools_hash')} (run) vs {T.tools_hash()} (now)")
+    if judgment is not None and judgment.get("rubric_hash") != rubric_hash():
+        out.append(f"rubric {judgment.get('rubric_hash')} (judgment) vs {rubric_hash()} (now)")
+    return out
+
+
+def warn_drift(runs: list[str], strict: bool = False) -> None:
+    seen: dict[str, int] = {}
+    for run in runs:
+        for t in load_run(run):
+            for d in drift(t):
+                seen[d] = seen.get(d, 0) + 1
+        jp = Path(run) / "judgments.jsonl"
+        if jp.exists():
+            for l in jp.read_text().splitlines():
+                if l.strip():
+                    j = json.loads(l)
+                    if j.get("rubric_hash") != rubric_hash():
+                        key = f"rubric {j.get('rubric_hash')} (judgment) vs {rubric_hash()} (now)"
+                        seen[key] = seen.get(key, 0) + 1
+    for d, n in sorted(seen.items()):
+        print(f"DRIFT ({n} records): {d}", file=sys.stderr)
+    if seen and strict:
+        sys.exit("refusing: drift between recorded and current artifacts (see above); pass without --strict to proceed")
 
 
 def parse_scores(text: str) -> dict:
@@ -163,6 +197,7 @@ def cmd_packets(a):
 
 def cmd_pool(a):
     import secrets
+    warn_drift(a.runs, getattr(a, "strict", False))
     out = Path(a.out)
     (out / "pool").mkdir(parents=True, exist_ok=True)
     (out / "RUBRIC.md").write_text(rubric_text())
@@ -289,6 +324,7 @@ def cmd_labels(a):
 
 
 def cmd_summary(a):
+    warn_drift(a.runs, a.strict)
     rows = []
     for run in a.runs:
         trajs = load_run(run)
@@ -335,10 +371,12 @@ def main(argv=None):
     r.add_argument("--judge", required=True); r.add_argument("--scores", required=True)
     r.set_defaults(fn=cmd_record)
     pl = sub.add_parser("pool"); pl.add_argument("--runs", nargs="+", required=True); pl.add_argument("--out", default="runs/.judge")
+    pl.add_argument("--strict", action="store_true")
     pl.set_defaults(fn=cmd_pool)
     u = sub.add_parser("run"); u.add_argument("--run", required=True); u.add_argument("--model", default="claude-opus-5")
     u.add_argument("--index", type=int, default=None); u.set_defaults(fn=cmd_run)
-    m = sub.add_parser("summary"); m.add_argument("runs", nargs="+"); m.set_defaults(fn=cmd_summary)
+    m = sub.add_parser("summary"); m.add_argument("runs", nargs="+"); m.add_argument("--strict", action="store_true")
+    m.set_defaults(fn=cmd_summary)
     h = sub.add_parser("handpick"); h.add_argument("--pool", default="runs/.judge"); h.add_argument("--out", default="runs/handpick")
     h.add_argument("--rater", default="rater"); h.add_argument("--seed", type=int, default=0)
     h.add_argument("--keys", nargs="*", default=None); h.add_argument("--dimensions", nargs="*", default=DIMENSIONS)

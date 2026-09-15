@@ -161,3 +161,9 @@ def test_over_apron_team_may_waive_and_swap_but_not_add():
     a.guaranteed = True
     after = apply_waiver(s, "SAC", a.id)
     assert abs(after.payroll("SAC") - s.payroll("SAC")) < 0.01
+
+
+def test_committed_rulebook_matches_the_code():
+    from pathlib import Path
+    from trade_desk.rules import rulebook_text
+    assert Path("rulebook/RULEBOOK.md").read_text() == rulebook_text()
