@@ -115,3 +115,23 @@ def test_espn_league_shape():
     assert "Domantas Sabonis" in {p.name for p in s.roster("SAC")}
     assert any(p.rating >= 80 for p in s.players.values())
     assert s.meta["source"] == "espn"
+
+
+@pytest.mark.parametrize("source", SOURCES)
+def test_forward_task_rejects_a_lateral_swap(source):
+    from trade_desk.tasks import _good_forwards
+    t = TASKS_BY_ID["partner_rejects_first"]
+    sc = t.build(source=source)
+    s = sc.state
+    # hand the team a 70+ forward while removing one of its own 70+ forwards, if it has any
+    donor = next(p for x in s.teams if x != sc.team for p in s.roster(x) if p.pos == "F" and p.rating >= 70)
+    after = s.clone()
+    after.players[donor.id].team = sc.team
+    mine = [p for p in after.roster(sc.team) if p.pos == "F" and p.rating >= 70 and p.id != donor.id]
+    if mine:
+        after.players[mine[0].id].team = donor.team   # lateral: one in, one out
+        passed, why = t.check(s, after, sc.team)
+        assert not passed and "net gain" in why
+        after.players[mine[0].id].team = sc.team      # keep it: net gain
+    passed, why = t.check(s, after, sc.team)
+    assert passed or "roster size" in why or "apron" in why

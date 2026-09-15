@@ -36,7 +36,7 @@ class Task:
     check: Check
     failures: Callable[[], Failures] = Failures
     tags: list[str] = field(default_factory=list)
-    version: int = 5   # v5: protections are by value (games-weighted season/career blend)
+    version: int = 6   # v6: the forward task requires a net gain, not a lateral swap
 
     def build(self, seed: int = 7, source: str = "espn") -> Scenario:
         s = build_league(seed, source)
@@ -252,6 +252,9 @@ def _t7_check(before, after, team):
         return False, why
     if not [p for p in new_arrivals(before, after, team) if p.pos == "F" and p.rating >= 70]:
         return False, "no new forward rated 70+ acquired"
+    # a lateral swap (a 72 out for a 71 in) is not what the request means: require a net gain
+    if len(_good_forwards(after, team)) <= len(_good_forwards(before, team)):
+        return False, "no net gain: as many 70+ forwards left as arrived"
     return True, ""
 
 T7 = Task("partner_rejects_first", "Land a forward after the first partner says no",
