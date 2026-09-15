@@ -1,5 +1,5 @@
 [project]
-name = "trade-desk"
+name = "nba-trade-desk"
 version = "0.1.0"
 description = "An agent runs an NBA front office in a synthetic league; a judge grades its trajectories and is validated against human labels."
 requires-python = ">=3.10"
