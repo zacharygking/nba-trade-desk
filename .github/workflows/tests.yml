@@ -1,0 +1,21 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: uv pip install --system -e ".[dev]"
+      - name: Test on both leagues
+        run: python -m pytest -q
+      - name: Smoke run, no API
+        run: python -m trade_desk.run run --client noop --tasks all --out /tmp/noop
