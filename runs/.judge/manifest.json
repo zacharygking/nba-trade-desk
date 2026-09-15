@@ -1,0 +1,194 @@
+{
+ "72f2831a": {
+  "run": "runs/agents-v5-haiku",
+  "index": 0
+ },
+ "8ebd3feb": {
+  "run": "runs/agents-v5-haiku",
+  "index": 1
+ },
+ "512d4217": {
+  "run": "runs/agents-v5-haiku",
+  "index": 2
+ },
+ "646ddcbb": {
+  "run": "runs/agents-v5-haiku",
+  "index": 3
+ },
+ "570d2c18": {
+  "run": "runs/agents-v5-haiku",
+  "index": 4
+ },
+ "60411916": {
+  "run": "runs/agents-v5-haiku",
+  "index": 5
+ },
+ "56e1f3e4": {
+  "run": "runs/agents-v5-haiku",
+  "index": 6
+ },
+ "3b8cfcf8": {
+  "run": "runs/agents-v5-haiku",
+  "index": 7
+ },
+ "258a3754": {
+  "run": "runs/agents-v5-sonnet",
+  "index": 0
+ },
+ "6eacd3f9": {
+  "run": "runs/agents-v5-sonnet",
+  "index": 1
+ },
+ "efadfedd": {
+  "run": "runs/agents-v5-sonnet",
+  "index": 2
+ },
+ "5f7fe487": {
+  "run": "runs/agents-v5-sonnet",
+  "index": 3
+ },
+ "f1dc870e": {
+  "run": "runs/agents-v5-sonnet",
+  "index": 4
+ },
+ "0b9b7b99": {
+  "run": "runs/agents-v5-sonnet",
+  "index": 5
+ },
+ "6abf8d01": {
+  "run": "runs/agents-v5-sonnet",
+  "index": 6
+ },
+ "e8941452": {
+  "run": "runs/agents-v5-sonnet",
+  "index": 7
+ },
+ "f3bc843f": {
+  "run": "runs/agents-v5-opus",
+  "index": 0
+ },
+ "6acc363d": {
+  "run": "runs/agents-v5-opus",
+  "index": 1
+ },
+ "5fad30e0": {
+  "run": "runs/agents-v5-opus",
+  "index": 2
+ },
+ "ab0afb9e": {
+  "run": "runs/agents-v5-opus",
+  "index": 3
+ },
+ "e0247fd5": {
+  "run": "runs/agents-v5-opus",
+  "index": 4
+ },
+ "fd818ffc": {
+  "run": "runs/agents-v5-opus",
+  "index": 5
+ },
+ "9a4dc08f": {
+  "run": "runs/agents-v5-opus",
+  "index": 6
+ },
+ "223ff8c4": {
+  "run": "runs/agents-v5-opus",
+  "index": 7
+ },
+ "7738613a": {
+  "run": "runs/archive/agents-haiku",
+  "index": 0
+ },
+ "ecf30ef4": {
+  "run": "runs/archive/agents-haiku",
+  "index": 1
+ },
+ "95f814c2": {
+  "run": "runs/archive/agents-haiku",
+  "index": 2
+ },
+ "f14f97ec": {
+  "run": "runs/archive/agents-haiku",
+  "index": 3
+ },
+ "89e5a371": {
+  "run": "runs/archive/agents-haiku",
+  "index": 4
+ },
+ "0daa56d8": {
+  "run": "runs/archive/agents-haiku",
+  "index": 5
+ },
+ "d31e6ba0": {
+  "run": "runs/archive/agents-haiku",
+  "index": 6
+ },
+ "73b7e384": {
+  "run": "runs/archive/agents-haiku",
+  "index": 7
+ },
+ "24c0fb05": {
+  "run": "runs/archive/agents-sonnet",
+  "index": 0
+ },
+ "5ab494cb": {
+  "run": "runs/archive/agents-sonnet",
+  "index": 1
+ },
+ "4c1188cf": {
+  "run": "runs/archive/agents-sonnet",
+  "index": 2
+ },
+ "d078f688": {
+  "run": "runs/archive/agents-sonnet",
+  "index": 3
+ },
+ "38d76b47": {
+  "run": "runs/archive/agents-sonnet",
+  "index": 4
+ },
+ "3b6c5db2": {
+  "run": "runs/archive/agents-sonnet",
+  "index": 5
+ },
+ "db8a07dd": {
+  "run": "runs/archive/agents-sonnet",
+  "index": 6
+ },
+ "e7d7707e": {
+  "run": "runs/archive/agents-sonnet",
+  "index": 7
+ },
+ "abfec007": {
+  "run": "runs/archive/agents-opus",
+  "index": 0
+ },
+ "89e0e177": {
+  "run": "runs/archive/agents-opus",
+  "index": 1
+ },
+ "4344ed9f": {
+  "run": "runs/archive/agents-opus",
+  "index": 2
+ },
+ "b2b10a69": {
+  "run": "runs/archive/agents-opus",
+  "index": 3
+ },
+ "9af3f552": {
+  "run": "runs/archive/agents-opus",
+  "index": 4
+ },
+ "320ca154": {
+  "run": "runs/archive/agents-opus",
+  "index": 5
+ },
+ "0b1369cf": {
+  "run": "runs/archive/agents-opus",
+  "index": 6
+ },
+ "2f17d215": {
+  "run": "runs/archive/agents-opus",
+  "index": 7
+ }
+}

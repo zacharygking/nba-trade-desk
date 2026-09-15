@@ -3,13 +3,12 @@ name = "nba-trade-desk"
 version = "0.1.0"
 description = "Agentic evaluation sandbox: an LLM agent runs an NBA front office over the real 2025-26 league; a rubric judge grades its trajectories and is validated against human labels and ground truth."
 requires-python = ">=3.12"
-dependencies = [
-    "anthropic>=1.0",
-    "motherlode @ git+https://github.com/zacharygking/motherlode@v0.1.0",
-]
+dependencies = ["anthropic>=1.0"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
+# the gate is motherlode's; the trade desk runs its commands and never imports it
+tools = ["motherlode @ git+https://github.com/zacharygking/motherlode@v0.2.1"]
 
 [project.scripts]
 nba-trade-desk = "trade_desk.cli:main"
