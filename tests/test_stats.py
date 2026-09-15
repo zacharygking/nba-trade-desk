@@ -44,5 +44,5 @@ def test_low_games_are_flagged(source):
 
 
 def test_tools_hash_is_stable_and_lists_nine_tools():
-    assert len(TOOL_NAMES) == 9 and "player_stats" in TOOL_NAMES
+    assert len(TOOL_NAMES) == 10 and "player_stats" in TOOL_NAMES and "view_league" in TOOL_NAMES
     assert tools_hash() == tools_hash() and len(tools_hash()) == 12

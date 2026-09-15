@@ -19,6 +19,12 @@ TOOLS: list[dict] = [
         "strict": True,
     },
     {
+        "name": "view_league",
+        "description": "Every team's payroll, cap room, distance from the tax line and apron, roster count and dead money, in one call. Use it to find trade partners with room or roster spots.",
+        "input_schema": {"type": "object", "properties": {}, "required": [], "additionalProperties": False},
+        "strict": True,
+    },
+    {
         "name": "view_cap_sheet",
         "description": "A team's payroll against the cap, tax line and apron, plus roster count and cap room.",
         "input_schema": {"type": "object", "properties": {"team": {"type": "string"}},
@@ -192,6 +198,17 @@ def _dispatch(state: LeagueState, name: str, a: dict, failures: Failures) -> Too
             "players": [player_view(p) for p in state.roster(t)],
             "picks": [k.id for k in state.team_picks(t)],
         }, False, state)
+
+    if name == "view_league":
+        rows = []
+        for t in sorted(state.teams, key=lambda t: -state.payroll(t)):
+            pay = state.payroll(t)
+            rows.append({"team": t, "payroll": pay, "cap_room": round(CAP - pay, 2),
+                         "over_tax_by": round(max(0.0, pay - TAX), 2), "room_under_apron": round(APRON - pay, 2),
+                         "roster_size": state.roster_size(t), "open_spots": ROSTER_MAX - state.roster_size(t),
+                         "dead_money": state.dead_money.get(t, 0.0)})
+        return ToolOutcome({"cap": CAP, "tax_line": TAX, "apron": APRON, "roster_max": ROSTER_MAX, "teams": rows},
+                           False, state)
 
     if name == "view_cap_sheet":
         t = _team(state, a["team"])
